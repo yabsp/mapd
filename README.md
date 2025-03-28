@@ -1,2 +1,3 @@
-# mapd
-Memory Allocation Problem Detector
+# Memory Allocation Problem Detector (mapd)
+
+

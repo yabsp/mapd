@@ -68,8 +68,6 @@ config.status
 
 # Other
 *.DS_Store
-.gitignore
-/.github/
 .idea/  # IntelliJ / CLion
 .vscode/ # VSCode
 tests/test_*

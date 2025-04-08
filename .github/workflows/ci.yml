@@ -25,7 +25,7 @@ jobs:
     - name: Run test under Valgrind
       run: |
         if make expect_fail; then
-          echo  Memory error NOT detected (unexpected)";
+          echo  "Memory error NOT detected (unexpected)";
           exit 1
         else
           echo "Memory error correctly detected (expected failure)";

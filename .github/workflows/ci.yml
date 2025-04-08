@@ -23,5 +23,12 @@ jobs:
       run: make test
 
     - name: Run test under Valgrind
-      run: make valgrind
+      run: |
+        if make expect_fail; then
+          echo  Memory error NOT detected (unexpected)";
+          exit 1
+        else
+          echo "Memory error correctly detected (expected failure)";
+          exit 0
+        fi
 

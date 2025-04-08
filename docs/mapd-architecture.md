@@ -46,7 +46,7 @@ The system is composed of two main components:
 
 ## Components and Responsibilities
 
-### 1. Injected Memory Wrapper (`libmemdetect.so`)
+### 1. Injected Memory Wrapper (`libmemwrap.so`)
 
 - Loaded via `LD_PRELOAD` into supported programs
 - Tracks memory function calls and memory metadata

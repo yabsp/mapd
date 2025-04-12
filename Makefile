@@ -18,8 +18,9 @@ test_alloc: tests/test_alloc.c
 test: all
 	LD_PRELOAD=./libmemwrap.so ./test_alloc
 
+
 valgrind: all
-	LD_PRELOAD=./libmemwrap.so valgrind --leak-check=full --error-exitcode=1 ./test_alloc
+	LD_PreloadS=./libmemwrap.so valgrind --leak-check=full --error-exitcode=1 ./test_alloc
 
 clean:
 	rm -f libmemwrap.so test_alloc

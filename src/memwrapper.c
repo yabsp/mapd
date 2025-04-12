@@ -72,7 +72,10 @@ void add_protected(void* ptr, size_t size) {
         if (!protected_ptrs[i]) {
             protected_ptrs[i] = ptr;
             protected_sizes[i] = size;
-            mprotect(ptr, size, PROT_NONE);
+            //mprotect(ptr, size, PROT_NONE);
+
+            int res = mprotect(ptr, size, PROT_NONE);
+            fprintf(stderr, "Trying to protect %p (%lu bytes) - result: %d\n", ptr, size, res);
             break;
         }
     }
@@ -84,7 +87,8 @@ void segv_handler(int sig, siginfo_t* si, void* unused) {
         if (protected_ptrs[i] && addr >= protected_ptrs[i] &&
             addr < (void*)((char*)protected_ptrs[i] + protected_sizes[i])) {
             show_warning("Dangling pointer access detected!");
-            break;
+            //return;   // Prevents crash whilst testing -> infinite loop
+            break;    // Leads to crash whilst testing
         }
     }
     sigaction(SIGSEGV, &old_action, NULL);
@@ -109,6 +113,18 @@ void* malloc(size_t size) {
     register_alloc(ptr, size);
     fprintf(stderr, "[WRAP] malloc(%zu) = %p\n", size, ptr);
     return ptr;
+}
+
+int posix_memalign(void **memptr, size_t alignment, size_t size) {
+    int (*real_posix_memalign)(void **, size_t, size_t);
+    real_posix_memalign = dlsym(RTLD_NEXT, "posix_memalign");
+
+    int result = real_posix_memalign(memptr, alignment, size);
+    if(result == 0) {
+        fprintf(stderr, "[WRAP] posix_memalign(%lu, %lu) = %p\n", alignment, size, *memptr);
+        register_alloc(*memptr, size);
+    }
+    return result;
 }
 
 void free(void* ptr) {

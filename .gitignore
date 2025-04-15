@@ -70,3 +70,6 @@ config.status
 *.DS_Store
 .idea/  # IntelliJ / CLion
 .vscode/ # VSCode
+
+# Test binaries
+/test_*

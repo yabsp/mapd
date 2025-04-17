@@ -1,27 +1,49 @@
-CC = gcc # set compiler, default is 'cc'
+# === Compiler & Flags ===
+CC = gcc
+CFLAGS = -Wall -Wextra -fPIC -g -pthread -Ilib -Isrc
 
-# -Wall: Enable common warnings
-# -fPIC: (Position Independent Code) Required for compilation into shared library
-# -g: Include debugging info in compile binary
-CFLAGS = -Wall -fPIC -g
+# === Source Files ===
+ANALYZER_SRC = src/analyzer.c src/message.c lib/cJSON.c
+WRAPPER_SRC = src/memwrap.c
+TEST_ALLOC_SRC = tests/test_alloc.c
 
-.PHONY: all valgrind clean
+# === Targets ===
+.PHONY: all clean test valgrind analyzer run-all
 
-all: libmemwrap.so test_alloc
+all: analyzer_bin libmemwrap.so test_alloc
 
-libmemwrap.so: src/memwrapper.c
-	$(CC) $(CFLAGS) -shared -o $@ $^ -ldl
+analyzer_bin: $(ANALYZER_SRC)
+	$(CC) $(CFLAGS) $^ -o analyzer
 
-test_alloc: tests/test_alloc.c
-	$(CC) $(CFLAGS) -o $@ $^
+libmemwrap.so: $(WRAPPER_SRC)
+	$(CC) -shared $(CFLAGS) $^ -o libmemwrap.so -ldl
 
+test_alloc: $(TEST_ALLOC_SRC)
+	$(CC) $(CFLAGS) $^ -o test_alloc
+
+# Run analyzer manually
+analyzer: analyzer_bin
+	./analyzer
+
+# Run test with wrapper injected
 test: all
 	LD_PRELOAD=./libmemwrap.so ./test_alloc
 
-
+# Run valgrind memory analysis
 valgrind: all
-	LD_PreloadS=./libmemwrap.so valgrind --leak-check=full --error-exitcode=1 ./test_alloc
+	LD_PRELOAD=./libmemwrap.so valgrind --leak-check=full --error-exitcode=1 ./test_alloc
 
+# Run analyzer and test together in one command
+run-all: all
+	@echo "Starting analyzer..."; \
+	./analyzer & \
+	ANALYZER_PID=$$!; \
+	sleep 1; \
+	echo "Running test_alloc with LD_PRELOAD..."; \
+	LD_PRELOAD=./libmemwrap.so ./test_alloc; \
+	echo "Stopping analyzer..."; \
+	kill $$ANALYZER_PID || true
+
+# Clean build artifacts
 clean:
-	rm -f libmemwrap.so test_alloc
-
+	rm -f analyzer libmemwrap.so test_alloc

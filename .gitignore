@@ -59,7 +59,8 @@ config.log
 config.status
 
 # IDE & Editor files
-.vscode/
+/.idea/  # IntelliJ / CLion
+/.vscode/ # VSCode
 *.swp
 *.swo
 *~    # Temporary files
@@ -68,7 +69,5 @@ config.status
 
 # Other
 *.DS_Store
-.idea/  # IntelliJ / CLion
-.vscode/ # VSCode
 /build/
 /test_*

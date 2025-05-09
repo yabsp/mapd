@@ -1,5 +1,6 @@
 #include "analyzer.h"
 #include "message.h"
+#include "backend.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdio.h>
@@ -25,9 +26,11 @@ void* handle_client(void* arg) {
         buffer[bytes_read] = '\0';
         Message msg = parse_json_to_message(buffer, ctx->client_number);
         enqueue_message(&msg);
+        process_message(&msg); // backend
     }
 
     printf("[Analyzer] Client #%d disconnected.\n", ctx->client_number);
+    finalize_client_report(ctx->client_number); // from backend
     close(ctx->client_fd);
     free(ctx);
     return NULL;

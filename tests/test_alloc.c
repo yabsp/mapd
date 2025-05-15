@@ -1,7 +1,11 @@
+#include <memwrap.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <dlfcn.h>
+
+void enable_tracking() __attribute__((weak));
 
 void test_simple_allocation() {
     printf("\n[TEST] Simple allocation and free\n");
@@ -45,14 +49,37 @@ void test_dangling_pointer() {
     p4[0] = 'X';  // Access after free
 }
 
+void test_double_free() {
+    printf("\n[TEST] Double free detection\n");
+    void* p = malloc(64);
+    if (!p) {
+        fprintf(stderr, "malloc failed\n");
+        return;
+    }
+
+    // First free:
+    free(p);
+    // Intentionally second free:
+    free(p);
+    sleep(10);
+}
+
+
 int main() {
     printf("=== Starting test_alloc ===\n");
 
+    if (enable_tracking) {
+        enable_tracking();
+    }
+
     // currently only this implemented:
+
+
+    test_double_free();
+    test_memory_leak();
     test_simple_allocation();
 
     /* after later added functionalities:
-    test_memory_leak();
     test_buffer_overflow();
     test_dangling_pointer();
     */

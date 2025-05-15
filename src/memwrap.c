@@ -8,14 +8,26 @@
 #include <sys/un.h>
 #include <pthread.h>
 #include <time.h>
+#include <execinfo.h>  // for optional backtrace debugging
 
 #include "memwrap.h"
 
 #define SOCKET_PATH "/tmp/mapd_socket"
+#define MAX_TRACKED_ALLOCS 10000
 
 static int sock_fd = -1;
 static void* (*real_malloc)(size_t) = NULL;
 static void (*real_free)(void*) = NULL;
+static int tracking_enabled = 0;
+
+typedef struct {
+    void* addr;
+    size_t size;
+} AllocationEntry;
+
+static AllocationEntry allocations[MAX_TRACKED_ALLOCS];
+static int allocation_count = 0;
+static pthread_mutex_t allocation_lock = PTHREAD_MUTEX_INITIALIZER;
 
 const char* event_type_to_string(EventType type) {
     switch (type) {
@@ -29,7 +41,12 @@ const char* event_type_to_string(EventType type) {
     }
 }
 
-__attribute__((constructor)) // runs before main() starts in target
+// Public function for test_alloc to call
+void enable_tracking() {
+    tracking_enabled = 1;
+}
+
+__attribute__((constructor))
 void setup_connection() {
     sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock_fd == -1) {
@@ -73,7 +90,14 @@ void* malloc(size_t size) {
     }
 
     void* ptr = real_malloc(size);
-    if (ptr) {
+
+    if (tracking_enabled && ptr) {
+        pthread_mutex_lock(&allocation_lock);
+        if (allocation_count < MAX_TRACKED_ALLOCS) {
+            allocations[allocation_count++] = (AllocationEntry){ ptr, size };
+        }
+        pthread_mutex_unlock(&allocation_lock);
+
         send_json_event(EVENT_MALLOC, ptr, size);
     }
 
@@ -85,15 +109,47 @@ void free(void* ptr) {
         real_free = dlsym(RTLD_NEXT, "free");
     }
 
-    if (ptr) {
-        send_json_event(EVENT_FREE, ptr, 0);
-    }
+    if (tracking_enabled && ptr) {
+        int found = 0;
+        size_t freed_size = 0;
 
-    real_free(ptr);
+        pthread_mutex_lock(&allocation_lock);
+        for (int i = 0; i < allocation_count; ++i) {
+            if (allocations[i].addr == ptr) {
+                freed_size = allocations[i].size;
+                allocations[i] = allocations[--allocation_count];
+                found = 1;
+                break;
+            }
+        }
+        pthread_mutex_unlock(&allocation_lock);
+
+        if (found) {
+            send_json_event(EVENT_FREE, ptr, freed_size);
+            real_free(ptr);  // ✅ Only free real memory if this is a valid first-time free
+        } else {
+            send_json_event(EVENT_DOUBLE_FREE, ptr, 0);
+            // ❌ Do not free again to avoid crash
+            return;
+        }
+    } else {
+        real_free(ptr);  // fallback: still free if tracking is off
+    }
 }
 
-__attribute__((destructor))  // after main() in target program returns
+
+
+
+__attribute__((destructor))
 void shutdown_connection() {
+    if (tracking_enabled) {
+        pthread_mutex_lock(&allocation_lock);
+        for (int i = 0; i < allocation_count; ++i) {
+            send_json_event(EVENT_MEMORY_LEAK, allocations[i].addr, allocations[i].size);
+        }
+        pthread_mutex_unlock(&allocation_lock);
+    }
+
     if (sock_fd != -1) {
         close(sock_fd);
         fprintf(stderr, "[Wrapper] Disconnected from analyzer.\n");

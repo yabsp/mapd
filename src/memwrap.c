@@ -69,7 +69,7 @@ void detect_memory_leaks() {
     pthread_mutex_unlock(&allocation_lock);
 }
 
-void handle_segv(int sig, siginfo_t* info, void* context) {
+void handle_segv(int sig __attribute__((unused)), siginfo_t* info, void* context __attribute__((unused))) {
     void* fault_addr = info->si_addr;
 
     // Check for dangling pointer

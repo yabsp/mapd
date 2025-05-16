@@ -9,7 +9,8 @@ typedef enum {
     EVENT_MEMORY_LEAK,
     EVENT_DANGLING_POINTER,
     EVENT_BUFFER_OVERFLOW,
-    EVENT_DOUBLE_FREE
+    EVENT_DOUBLE_FREE,
+    EVENT_FORCED_CRASH
 } EventType;
 
 const char* event_type_to_string(EventType type);

@@ -43,11 +43,11 @@ void test_buffer_overflow() {
 
 void test_dangling_pointer() {
     printf("\n[TEST] Dangling pointer detection\n");
-    char* p4;
-    posix_memalign((void**)&p4, 4096, 4096);
-    free(p4);
-    p4[0] = 'X';  // Access after free
+    char* p = malloc(126);
+    free(p);
+    p[0] = 'X';       // accesses dangling pointer
 }
+
 
 void test_double_free() {
     printf("\n[TEST] Double free detection\n");
@@ -61,7 +61,6 @@ void test_double_free() {
     free(p);
     // Intentionally second free:
     free(p);
-    sleep(10);
 }
 
 
@@ -72,16 +71,23 @@ int main() {
         enable_tracking();
     }
 
-    // currently only this implemented:
 
-
+    // Test Memory Leak with Double Frees (and simple allocation):
+    /*
     test_double_free();
     test_memory_leak();
     test_simple_allocation();
+    */
 
-    /* after later added functionalities:
-    test_buffer_overflow();
+    // Test Dangling Pointer:
+
     test_dangling_pointer();
+
+
+
+    // Test Buffer Overflow:
+    /*
+    test_buffer_overflow();
     */
 
     printf("\n[TEST] All tests completed.\n");

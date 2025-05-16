@@ -17,8 +17,6 @@ pthread_mutex_t counter_lock = PTHREAD_MUTEX_INITIALIZER;
 void* handle_client(void* arg) {
     ClientContext* ctx = (ClientContext*)arg;
     char buffer[1024];
-    char message_buf[2048] = {0};
-    size_t message_len = 0;
     ssize_t bytes_read;
 
     printf("[Analyzer] New connection: Client #%d (fd = %d)\n",
@@ -27,22 +25,19 @@ void* handle_client(void* arg) {
     while ((bytes_read = read(ctx->client_fd, buffer, sizeof(buffer) - 1)) > 0) {
         buffer[bytes_read] = '\0';
 
-        // Accumulate data
-        strncat(message_buf, buffer, sizeof(message_buf) - strlen(message_buf) - 1);
-
-        char* line;
-        char* saveptr;
-        line = strtok_r(message_buf, "\n", &saveptr);
-
+        char* line = strtok(buffer, "\n");
         while (line != NULL) {
+            if (strlen(line) == 0 || line[0] != '{') {
+                line = strtok(NULL, "\n");
+                continue;
+            }
+
             Message msg = parse_json_to_message(line, ctx->client_number);
             enqueue_message(&msg);
-            line = strtok_r(NULL, "\n", &saveptr);
+            line = strtok(NULL, "\n");
         }
-
-        // Reset message_buf after all lines processed
-        message_buf[0] = '\0';
     }
+
 
     printf("[Analyzer] Client #%d disconnected.\n", ctx->client_number);
     close(ctx->client_fd);

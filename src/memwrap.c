@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include <sys/mman.h>
 #include <execinfo.h>
-
 #include "memwrap.h"
 
 #define SOCKET_PATH "/tmp/mapd_socket"
@@ -21,10 +20,9 @@
 
 static int sock_fd = -1;
 static void* (*real_malloc)(size_t) = NULL;
-static void (*real_free)(void*) = NULL;
+static void* (*real_free)(void*) = NULL;
 static int tracking_enabled = 0;
 static volatile sig_atomic_t crashed = 0;
-
 
 typedef struct {
     void* addr;
@@ -55,17 +53,11 @@ const char* event_type_to_string(EventType type) {
 
 void send_json_event(EventType type, void* addr, size_t size) {
     if (sock_fd == -1) return;
-
     char msg[512];
     snprintf(msg, sizeof(msg),
         "{ \"type\": \"%s\", \"addr\": \"%p\", \"size\": %zu, \"thread\": %lu, \"timestamp\": %ld }\n",
-        event_type_to_string(type),
-        addr,
-        size,
-        (unsigned long)pthread_self(),
-        time(NULL)
-    );
-
+        event_type_to_string(type), addr, size,
+        (unsigned long)pthread_self(), time(NULL));
     write(sock_fd, msg, strlen(msg));
 }
 
@@ -80,6 +72,7 @@ void detect_memory_leaks() {
 void handle_segv(int sig, siginfo_t* info, void* context) {
     void* fault_addr = info->si_addr;
 
+    // Check for dangling pointer
     pthread_mutex_lock(&freed_lock);
     for (int i = 0; i < freed_region_count; ++i) {
         void* start = freed_regions[i].addr;
@@ -87,22 +80,33 @@ void handle_segv(int sig, siginfo_t* info, void* context) {
         if (fault_addr >= start && fault_addr < end) {
             send_json_event(EVENT_DANGLING_POINTER, start, freed_regions[i].requested_size);
             send_json_event(EVENT_FORCED_CRASH, start, freed_regions[i].requested_size);
-
             munmap(start, freed_regions[i].allocated_size);
             freed_regions[i] = freed_regions[--freed_region_count];
-            break;
+            goto exit_crash;
         }
     }
     pthread_mutex_unlock(&freed_lock);
 
-    fprintf(stderr, "[Wrapper] Error: Detected dangling pointer — exiting cleanly.\n");
+    // Check for buffer overflow
+    pthread_mutex_lock(&allocation_lock);
+    size_t pagesize = sysconf(_SC_PAGESIZE);
+    for (int i = 0; i < allocation_count; ++i) {
+        void* guard = (void*)((uintptr_t)allocations[i].addr + allocations[i].allocated_size - pagesize);
+        void* end = (void*)((uintptr_t)guard + pagesize);
+        if (fault_addr >= guard && fault_addr < end) {
+            send_json_event(EVENT_BUFFER_OVERFLOW, allocations[i].addr, allocations[i].requested_size);
+            send_json_event(EVENT_FORCED_CRASH, allocations[i].addr, allocations[i].requested_size);
+            break;
+        }
+    }
+    pthread_mutex_unlock(&allocation_lock);
+
+exit_crash:
+    fprintf(stderr, "[Wrapper] Error: Crashing due to memory violation.\n");
     fsync(sock_fd);
     usleep(10000);
-
-    if (sock_fd != -1) {
-        close(sock_fd);
-    }
-    crashed = 1 ;
+    if (sock_fd != -1) close(sock_fd);
+    crashed = 1;
     exit(EXIT_FAILURE);
 }
 
@@ -113,10 +117,7 @@ void enable_tracking() {
 __attribute__((constructor))
 void setup_connection() {
     sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sock_fd == -1) {
-        perror("[Wrapper] socket");
-        return;
-    }
+    if (sock_fd == -1) return;
 
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
@@ -124,7 +125,6 @@ void setup_connection() {
     strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
 
     if (connect(sock_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        perror("[Wrapper] connect");
         close(sock_fd);
         sock_fd = -1;
     } else {
@@ -140,43 +140,43 @@ void setup_connection() {
 
 void* malloc(size_t size) {
     if (!tracking_enabled) {
-        if (!real_malloc)
-            real_malloc = dlsym(RTLD_NEXT, "malloc");
+        if (!real_malloc) real_malloc = dlsym(RTLD_NEXT, "malloc");
         return real_malloc(size);
     }
 
     size_t pagesize = sysconf(_SC_PAGESIZE);
-    size_t alloc_size = ((size + pagesize - 1) / pagesize) * pagesize;
+    size_t usable = ((size + pagesize - 1) / pagesize) * pagesize;
+    size_t total = usable + pagesize;
 
-    void* ptr = mmap(NULL, alloc_size, PROT_READ | PROT_WRITE,
-                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (ptr == MAP_FAILED) return NULL;
+    void* base = mmap(NULL, total, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (base == MAP_FAILED) return NULL;
+
+    void* guard = (void*)((uintptr_t)base + usable);
+    mprotect(guard, pagesize, PROT_NONE);
 
     pthread_mutex_lock(&allocation_lock);
     if (allocation_count < MAX_TRACKED_ALLOCS) {
         allocations[allocation_count++] = (AllocationEntry){
-            .addr = ptr,
+            .addr = base,
             .requested_size = size,
-            .allocated_size = alloc_size
+            .allocated_size = total
         };
     }
     pthread_mutex_unlock(&allocation_lock);
 
-    send_json_event(EVENT_MALLOC, ptr, size);
-    return ptr;
+    send_json_event(EVENT_MALLOC, base, size);
+    return base;
 }
 
 void free(void* ptr) {
     if (!tracking_enabled || ptr == NULL) {
-        if (!real_free)
-            real_free = dlsym(RTLD_NEXT, "free");
+        if (!real_free) real_free = dlsym(RTLD_NEXT, "free");
         real_free(ptr);
         return;
     }
 
     int found = 0;
-    size_t requested = 0;
-    size_t alloc_size = 0;
+    size_t requested = 0, alloc_size = 0;
 
     pthread_mutex_lock(&allocation_lock);
     for (int i = 0; i < allocation_count; ++i) {
@@ -216,10 +216,8 @@ void free(void* ptr) {
 __attribute__((destructor))
 void shutdown_connection() {
     if (tracking_enabled && !crashed) {
-        printf("in method shutdown");
         detect_memory_leaks();
     }
-
     if (sock_fd != -1) {
         close(sock_fd);
         fprintf(stderr, "[Wrapper] Disconnected from analyzer.\n");

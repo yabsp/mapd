@@ -10,7 +10,6 @@ void enable_tracking() __attribute__((weak));
 void test_simple_allocation() {
     printf("\n[TEST] Simple allocation and free\n");
     void* x = malloc(100);
-    sleep(10);  // for testing multiple threads
     free(x);
 }
 
@@ -51,7 +50,7 @@ void test_dangling_pointer() {
 
 void test_double_free() {
     printf("\n[TEST] Double free detection\n");
-    void* p = malloc(64);
+    void* p = malloc(35);
     if (!p) {
         fprintf(stderr, "malloc failed\n");
         return;
@@ -80,15 +79,15 @@ int main() {
     */
 
     // Test Dangling Pointer:
-
+    /*
     test_dangling_pointer();
-
+    */
 
 
     // Test Buffer Overflow:
-    /*
+
     test_buffer_overflow();
-    */
+
 
     printf("\n[TEST] All tests completed.\n");
     return 0;

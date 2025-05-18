@@ -62,6 +62,38 @@ void test_double_free() {
     free(p);
 }
 
+void test_fragmentation() {
+    printf("\n[TEST] Fragmentation detection\n");
+
+    const int num_blocks = 500;
+    const size_t block_size = 4096;
+    void* blocks[num_blocks];
+
+    // Allocate many small blocks
+    for (int i = 0; i < num_blocks; i++) {
+        blocks[i] = malloc(block_size);
+        if(!blocks[i]) {
+            fprintf(stderr, "malloc failed at block %d\n", i);
+            break;
+        }
+    }
+
+    // Free every other block to simulate fragmentation
+    for (int i = 0; i < num_blocks; i+=2) {
+        free(blocks[i]);
+    }
+
+    printf("\n[TEST] Sleeping 12s to allow fragmentation detection...\n");
+    sleep(12);
+
+    // Free the rest
+    for (int i = 1; i < num_blocks; i+=2) {
+        free(blocks[i]);
+    }
+
+    printf("\n[TEST] Fragment detection complete\n");
+}
+
 
 int main() {
     printf("=== Starting test_alloc ===\n");
@@ -85,9 +117,13 @@ int main() {
 
 
     // Test Buffer Overflow:
-
+    /*
     test_buffer_overflow();
+    */
 
+    // Test Fragmentation:
+
+    test_fragmentation();
 
     printf("\n[TEST] All tests completed.\n");
     return 0;

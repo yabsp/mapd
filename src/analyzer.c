@@ -1,5 +1,6 @@
 #include "analyzer.h"
 #include "message.h"
+#include "fragmentation.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdio.h>
@@ -10,6 +11,7 @@
 
 #define SOCKET_PATH "/tmp/mapd_socket"
 
+extern void* fragmentation_thread(void*);
 static int client_counter = 0;
 pthread_mutex_t counter_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -63,6 +65,10 @@ int main() {
     pthread_t gui_thread;
     pthread_create(&gui_thread, NULL, gui_consumer_thread, NULL);
     pthread_detach(gui_thread);
+
+    pthread_t frag_thread;
+    pthread_create(&frag_thread, NULL, fragmentation_thread, NULL);
+    pthread_detach(frag_thread);
 
     server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (server_fd == -1) {

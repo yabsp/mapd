@@ -49,36 +49,33 @@ $(VALGRIND_TEST_BIN): $(TEST_VALGRIND_SRC)
 analyzer: $(OUTDIR)/analyzer
 	$(OUTDIR)/analyzer
 
-# Run test with wrapper injected, automated use
-test-all: all
-	$(foreach arg,$(TEST_ARGS), $(call run_test_case,$(arg)))
-
 # GNU Make define directive, shell script used above for automated test-all
-define run_test_case
-	@mkdir -p $(OUTDIR)/tmp; \
-	echo "\n[Make] Running test_alloc $1"; \
-	$(OUTDIR)/analyzer & \
-	ANALYZER_PID=$$!; \
-	sleep 0.5; \
-	LD_PRELOAD=$(OUTDIR)/libmemwrap.so $(OUTDIR)/test_alloc $1 > $(OUTDIR)/tmp/tmp.out 2>&1; \
-	STATUS=$$?; \
-	kill $$ANALYZER_PID || true; \
-	if [ "$1" = "--simple" ] || [ "$1" = "--leak" ] || [ "$1" = "--fragmentation" ] || [ "$1" = "--double-free" ]; then \
-		if [ $$STATUS -eq 0 ]; then \
-			echo "[Make] $1 passed as expected"; \
+test-all: all
+	@mkdir -p $(OUTDIR)/tmp
+	@for arg in $(TEST_ARGS); do \
+		echo "\n[Make] Running test_alloc $$arg"; \
+		$(OUTDIR)/analyzer & \
+		ANALYZER_PID=$$!; \
+		sleep 0.5; \
+		LD_PRELOAD=$(OUTDIR)/libmemwrap.so $(OUTDIR)/test_alloc $$arg > $(OUTDIR)/tmp/tmp.out 2>&1; \
+		STATUS=$$?; \
+		kill $$ANALYZER_PID || true; \
+		if [ "$$arg" = "--simple" ] || [ "$$arg" = "--leak" ] || [ "$$arg" = "--fragmentation" ] || [ "$$arg" = "--double-free" ]; then \
+			if [ $$STATUS -eq 0 ]; then \
+				echo "[Make] $$arg passed as expected"; \
+			else \
+				echo "[Make] $$arg failed unexpectedly (exit $$STATUS)"; cat $(OUTDIR)/tmp/tmp.out; exit 1; \
+			fi; \
+		elif [ "$$arg" = "--dangling" ] || [ "$$arg" = "--overflow" ]; then \
+			if [ $$STATUS -ne 0 ]; then \
+				echo "[Make] $$arg crashed as expected (exit $$STATUS)"; \
+			else \
+				echo "[Make] $$arg did NOT crash as expected"; cat $(OUTDIR)/tmp/tmp.out; exit 1; \
+			fi; \
 		else \
-			echo "[Make] $1 failed unexpectedly (exit $$STATUS)"; cat $(OUTDIR)/tmp/tmp.out; exit 1; \
-		fi \
-	elif [ "$1" = "--dangling" ] || [ "$1" = "--overflow" ]; then \
-		if [ $$STATUS -ne 0 ]; then \
-			echo "[Make] $1 crashed as expected (exit $$STATUS)"; \
-		else \
-			echo "[Make] $1 did NOT crash as expected"; cat $(OUTDIR)/tmp/tmp.out; exit 1; \
-		fi \
-	else \
-		echo "[Make] Unknown test $1"; exit 1; \
-	fi
-endef
+			echo "[Make] Unknown test $$arg"; exit 1; \
+		fi; \
+	done
 
 # Individual test targets: make test-leak, test-dangling, etc.
 test-%: all

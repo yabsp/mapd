@@ -106,4 +106,9 @@ Removes the entire `build/` directory, including:
 
 - All memory tests use `LD_PRELOAD=build/libmemwrap.so` to inject the custom memory tracker.
 - Output logs can be inspected under `build/tmp/` for debugging.
-- The analyzer is started and stopped automatically for each test.
+
+### Testing without Make
+- It is possible to test without Make.
+- In such a case pass the test you want to run as argument to the test_alloc executable.
+- Possible arguments are: `--overflow`, `--dangling`, `--double-free`, `--fragmentation`, `--simple`, `--all`
+- In this case you will need a separate, running analyzer instance

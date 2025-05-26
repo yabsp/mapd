@@ -81,14 +81,8 @@ test-all: all
 test-%: all
 	@echo "\n[Make] Running test_alloc --$* (manual mode)"
 	@mkdir -p $(OUTDIR)/tmp
-	@$(OUTDIR)/analyzer & \
-	ANALYZER_PID=$$!; \
-	sleep 0.5; \
-	LD_PRELOAD=$(OUTDIR)/libmemwrap.so $(OUTDIR)/test_alloc --$* > $(OUTDIR)/tmp/test_$*.out 2>&1; \
-	STATUS=$$?; \
-	kill $$ANALYZER_PID || true; \
-	echo "[Make] Output saved in build/tmp/test_$*.out"; \
-	exit $$STATUS
+	@LD_PRELOAD=$(OUTDIR)/libmemwrap.so $(OUTDIR)/test_alloc --$*
+	@echo "[Make] Press Ctrl+C to stop or kill manually"
 
 # Run valgrind on analyzer -> check issues with analyzer
 valgrind-analyzer: $(OUTDIR)/analyzer

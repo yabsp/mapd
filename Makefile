@@ -62,7 +62,7 @@ define run_test_case
 	sleep 0.5; \
 	LD_PRELOAD=$(OUTDIR)/libmemwrap.so $(OUTDIR)/test_alloc $1 > $(OUTDIR)/tmp/tmp.out 2>&1; \
 	STATUS=$$?; \
-	kill $$ANALYZER_PID || true;
+	kill $$ANALYZER_PID || true; \
 	if [ "$1" = "--simple" ] || [ "$1" = "--leak" ] || [ "$1" = "--fragmentation" ] || [ "$1" = "--double-free" ]; then \
 		if [ $$STATUS -eq 0 ]; then \
 			echo "[Make] $1 passed as expected"; \

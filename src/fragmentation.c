@@ -15,10 +15,10 @@
 //#define FRAG_LARGE_THRESHOLD 200
 
 // Values for real world application
-#define FRAG_SMALL_THRESHOLD 3500
-#define FRAG_LARGE_THRESHOLD 100
+#define FRAG_SMALL_THRESHOLD 50000
+#define FRAG_LARGE_THRESHOLD 5000
 
-void* fragmentation_thread(void* arg) {
+void* fragmentation_thread( void* arg) {
   (void)arg;
 
   while (1) {

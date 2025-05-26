@@ -7,7 +7,7 @@ OUTDIR = build
 VALGRIND_TEST_BIN = $(OUTDIR)/test_valgrind
 
 # === Source Files ===
-ANALYZER_SRC = src/analyzer.c src/message.c lib/cJSON.c
+ANALYZER_SRC = src/analyzer.c src/message.c lib/cJSON.c src/fragmentation.c
 WRAPPER_SRC = src/memwrap.c
 TEST_ALLOC_SRC = tests/test_alloc.c
 TEST_VALGRIND_SRC = tests/test_valgrind.c

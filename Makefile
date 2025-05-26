@@ -55,9 +55,9 @@ test-all: all
 
 # GNU Make define directive, shell script used above for automated test-all
 define run_test_case
-	@mkdir -p $(OUTDIR)/tmp
-	@echo "\n[Make] Running test_alloc $1"
-	@$(OUTDIR)/analyzer & \
+	@mkdir -p $(OUTDIR)/tmp; \
+	echo "\n[Make] Running test_alloc $1"; \
+	$(OUTDIR)/analyzer & \
 	ANALYZER_PID=$$!; \
 	sleep 0.5; \
 	LD_PRELOAD=$(OUTDIR)/libmemwrap.so $(OUTDIR)/test_alloc $1 > $(OUTDIR)/tmp/tmp.out 2>&1; \

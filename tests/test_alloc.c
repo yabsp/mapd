@@ -94,36 +94,42 @@ void test_fragmentation() {
     printf("\n[TEST] Fragment detection complete\n");
 }
 
+void print_usage(const char* progname) {
+    fprintf(stderr, "Usage: %s [--leak|--overflow|--dangling|--double-free|--fragmentation|--simple|--all]\n", progname);
+}
 
-int main() {
+int main(int argc, char** argv) {
     printf("=== Starting test_alloc ===\n");
 
     if (enable_tracking) {
         enable_tracking();
     }
 
+    if (argc < 2) {
+        print_usage(argv[0]);
+        return 1;
+    }
 
-    // Test Memory Leak with Double Frees (and simple allocation):
-    /*
-    test_double_free();
-    test_memory_leak();
-    test_simple_allocation();
-    */
-
-    // Test Dangling Pointer:
-    /*
-    test_dangling_pointer();
-    */
-
-
-    // Test Buffer Overflow:
-    /*
-    test_buffer_overflow();
-    */
-
-    // Test Fragmentation:
-
-    test_fragmentation();
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--leak") == 0) test_memory_leak();
+        else if (strcmp(argv[i], "--overflow") == 0) test_buffer_overflow();
+        else if (strcmp(argv[i], "--dangling") == 0) test_dangling_pointer();
+        else if (strcmp(argv[i], "--double-free") == 0) test_double_free();
+        else if (strcmp(argv[i], "--fragmentation") == 0) test_fragmentation();
+        else if (strcmp(argv[i], "--simple") == 0) test_simple_allocation();
+        else if (strcmp(argv[i], "--all") == 0) {
+            test_simple_allocation();
+            test_memory_leak();
+            test_buffer_overflow();
+            test_dangling_pointer();
+            test_double_free();
+            test_fragmentation();
+        } else {
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            print_usage(argv[0]);
+            return 1;
+        }
+    }
 
     printf("\n[TEST] All tests completed.\n");
     return 0;

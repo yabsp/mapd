@@ -56,10 +56,11 @@ make test-dangling
 ```
 
 This:
-- Starts the analyzer
 - Runs `test_alloc` with the given argument
 - Preloads `libmemwrap.so`
 - Saves output to `build/tmp/test_<name>.out`
+
+You will still need to start valgind separately either by running the executable directly or using `make analyzer`.
 
 ---
 
@@ -107,16 +108,15 @@ Removes the entire `build/` directory, including:
 ---
 ## General Testing Notes
 
-- All memory tests use `LD_PRELOAD=build/libmemwrap.so` to inject the custom memory tracker.
+- All memory tests use `LD_PRELOAD=build/libmemwrap.so` to inject the custom memory tracker, even if not needed in e.g. fragmentation testing.
 - Output logs can be inspected under `build/tmp/` for debugging.
-
 
 
 ### Testing without Make
 - It is possible to test without Make.
 - In such a case pass the test you want to run as argument to the test_alloc executable.
-- Possible arguments are: `--overflow`, `--dangling`, `--double-free`, `--fragmentation`, `--simple`, `--all`
-- In this case you will need a separate, running analyzer instance
+- Possible arguments are: `--overflow`, `--dangling`, `--double-free`, `--fragmentation`, `--simple`, `--all` as stated above.
+- Do not forget that in this case you will need a separate, running analyzer instance as well.
 
 
 

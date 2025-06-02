@@ -59,11 +59,11 @@ config.log
 config.status
 
 # IDE & Editor files
-/.idea/  # IntelliJ / CLion
-/.vscode/ # VSCode
+.idea/
+/.vscode/
 *.swp
 *.swo
-*~    # Temporary files
+*~
 *.bak
 *.backup
 

@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 0.96.1 -->
+<interface>
+  <!-- interface-name mapdgui.ui -->
+  <requires lib="gtk" version="4.6"/>
+  <object class="GtkApplicationWindow" id="main_window">
+    <property name="maximized">True</property>
+    <property name="title">Memory Allocation Problem Detector</property>
+    <property name="titlebar">
+      <object class="GtkHeaderBar">
+        <child>
+          <object class="GtkButton" id="help_button">
+            <property name="label">Help</property>
+          </object>
+        </child>
+      </object>
+    </property>
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child>
+          <object class="GtkBox" id="logo_container">
+            <property name="margin-bottom">20</property>
+            <property name="margin-end">20</property>
+            <property name="margin-start">20</property>
+            <property name="margin-top">20</property>
+            <property name="spacing">20</property>
+            <child>
+              <object class="GtkButton">
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="has-frame">False</property>
+                <property name="valign">center</property>
+                <child>
+                  <object class="GtkImage" id="logo_image">
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="margin-start">30</property>
+            <property name="margin-top">10</property>
+            <child>
+              <object class="GtkLabel" id="selector_label">
+                <property name="label">Please select an application to run the memory detector:</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow" id="selector_scrollwindow">
+            <property name="hexpand">true</property>
+            <property name="vexpand">true</property>
+            <child>
+              <object class="GtkListBox" id="selector_list">
+                <property name="margin-bottom">30</property>
+                <property name="margin-end">30</property>
+                <property name="margin-start">30</property>
+                <child>
+                  <object class="GtkBox" id="selectorrow_container">
+                    <child>
+                      <object class="GtkLabel" id="appname_label">
+                        <property name="label">Application Name</property>
+                        <property name="margin-end">142</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="appstatus_label">
+                        <property name="halign">baseline</property>
+                        <property name="label">Status</property>
+                        <property name="margin-end">20</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="appstart_button">
+                        <property name="halign">end</property>
+                        <property name="label">Start</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

@@ -50,112 +50,126 @@
           <object class="GtkStack" id="main_stack">
             <property name="visible-child-name">selector_box</property>
             <child>
-              <object class="GtkBox" id="selector_box">
-                <property name="orientation">vertical</property>
-                <property name="spacing">10</property>
-                <child>
-                  <object class="GtkBox" id="selector_view">
+              <object class="GtkStackPage" id="selector_page">
+                <property name="child">
+                  <object class="GtkBox" id="selector_box">
+                    <property name="name">selector_box</property>
+                    <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
-                      <object class="GtkLabel" id="selector_label">
-                        <property name="label">Select Application:</property>
+                      <object class="GtkBox" id="selector_view">
+                        <property name="spacing">10</property>
+                        <child>
+                          <object class="GtkLabel" id="selector_label">
+                            <property name="label">Select Application:</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScrolledWindow" id="selector_scrollwindow">
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">true</property>
+                            <child>
+                              <object class="GtkListBox" id="selector_list">
+                                <property name="margin-bottom">10</property>
+                                <property name="margin-end">10</property>
+                                <property name="margin-top">10</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkScrolledWindow" id="selector_scrollwindow">
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">true</property>
+                      <object class="GtkBox" id="launcher_box">
+                        <property name="spacing">10</property>
                         <child>
-                          <object class="GtkListBox" id="selector_list">
-                            <property name="margin-bottom">10</property>
-                            <property name="margin-end">10</property>
-                            <property name="margin-top">10</property>
+                          <object class="GtkLabel" id="arg_label">
+                            <property name="label">Select Arguments:</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="arg_entry">
+                            <property name="placeholder-text">e.g. --leak</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="launch_button">
+                            <property name="label">Launch</property>
                           </object>
                         </child>
                       </object>
                     </child>
                   </object>
-                </child>
-                <child>
-                  <object class="GtkBox" id="launcher_box">
-                    <property name="spacing">10</property>
-                    <child>
-                      <object class="GtkLabel" id="arg_label">
-                        <property name="label">Select Arguments:</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="arg_entry">
-                        <property name="placeholder-text">e.g. --leak</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="launch_button">
-                        <property name="label">Launch</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
+                </property>
+                <property name="name">selector_box</property>
+                <property name="title">selector_box</property>
               </object>
             </child>
             <child>
-              <object class="GtkBox" id="process_box">
-                <property name="orientation">vertical</property>
-                <property name="spacing">10</property>
-                <child>
-                  <object class="GtkBox" id="active_box">
+              <object class="GtkStackPage" id="process_page">
+                <property name="child">
+                  <object class="GtkBox" id="process_box">
+                    <property name="name">process_box</property>
+                    <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
-                      <object class="GtkLabel" id="activeapp_label">
-                        <property name="label">Current Running Application:</property>
+                      <object class="GtkBox" id="active_box">
+                        <property name="spacing">10</property>
+                        <child>
+                          <object class="GtkLabel" id="activeapp_label">
+                            <property name="label">Current Running Application:</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="application_label">
+                            <property name="label">YOUR APPLICATION</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="application_label">
-                        <property name="label">YOUR APPLICATION</property>
+                      <object class="GtkScrolledWindow" id="analyzer_scroll">
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <child>
+                          <object class="GtkTextView">
+                            <property name="editable">False</property>
+                            <property name="wrap-mode">word</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="control_box">
+                        <property name="halign">end</property>
+                        <property name="spacing">10</property>
+                        <child>
+                          <object class="GtkLabel" id="button_label">
+                            <property name="halign">start</property>
+                            <property name="label">Control:</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="details_button">
+                            <property name="label">Details</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="resolve_button">
+                            <property name="label">Resolve</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="kill_button">
+                            <property name="label">Kill Process</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
-                </child>
-                <child>
-                  <object class="GtkScrolledWindow" id="analyzer_scroll">
-                    <property name="hexpand">True</property>
-                    <property name="vexpand">True</property>
-                    <child>
-                      <object class="GtkTextView">
-                        <property name="editable">False</property>
-                        <property name="wrap-mode">word</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkBox" id="control_box">
-                    <property name="halign">end</property>
-                    <property name="spacing">10</property>
-                    <child>
-                      <object class="GtkLabel" id="button_label">
-                        <property name="halign">start</property>
-                        <property name="label">Control:</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="details_button">
-                        <property name="label">Details</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="resolve_button">
-                        <property name="label">Resolve</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="kill_button">
-                        <property name="label">Kill Process</property>
-                      </object>
-                    </child>
-                  </object>
-                </child>
+                </property>
+                <property name="name">process_page</property>
+                <property name="title">process_page</property>
               </object>
             </child>
           </object>

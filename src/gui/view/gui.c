@@ -8,7 +8,6 @@ void build_gui(GtkApplication *app)
 
     // Load UI file
     builder = gtk_builder_new_from_file("resources/mapdgui.ui");
-    global_builder = builder;
 
     // Get main window and set application for the window
     window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));

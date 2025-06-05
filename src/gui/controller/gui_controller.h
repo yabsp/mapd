@@ -10,9 +10,6 @@
 // Store what row is currently selected
 extern GtkListBoxRow *selected_row;
 
-// Store the builder for the program
-extern GtkBuilder *global_builder;
-
 // Logo button click handler
 void on_logo_clicked(GtkWidget *widget, gpointer user_data);
 
@@ -24,6 +21,9 @@ void append_analyzer_log(GtkBuilder *builder, const char *text);
 
 // Launch button click handler
 void on_launch_button_clicked(GtkWidget *widget, gpointer user_data);
+
+// Kill button click handler
+void on_kill_button_clicked(GtkWidget *widget, gpointer user_data);
 
 // Connect all signals and initialize controller logic
 void gui_connect_signals(GtkBuilder *builder);

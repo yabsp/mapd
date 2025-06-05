@@ -1,12 +1,13 @@
 #include "gui_controller.h"
 
 GtkListBoxRow *selected_row = NULL;
-GtkBuilder *global_builder = NULL;
 
 // Logo: open website of Univesity Basel
 // TODO DOES NOT WORK
 void on_logo_clicked(GtkWidget *widget, gpointer user_data)
 {
+    (void)widget;
+    (void)user_data;
     const gchar *url = "https://www.unibas.ch";
     GError *error = NULL;
 
@@ -72,11 +73,12 @@ void append_analyzer_log(GtkBuilder *builder, const char *text)
 // Store the execution path if a application is selected
 void on_app_selected(GtkListBox *box, GtkListBoxRow *row, gpointer user_data)
 {
+    (void)box;
+    (void)user_data;
     selected_row = row;
     gchar *exec_path = g_object_get_data(G_OBJECT(row), "exec_path");
     g_print("Selected application: %s\n", exec_path);
 }
-
 
 // launch_button: initiates launching of application and changes view if successful
 void on_launch_button_clicked(GtkWidget *widget, gpointer user_data)
@@ -99,10 +101,19 @@ void on_launch_button_clicked(GtkWidget *widget, gpointer user_data)
     if (launch_application(exec_path, arguments))
     {
         GtkWidget *stack = GTK_WIDGET(gtk_builder_get_object(builder, "main_stack"));
-        gtk_stack_set_visible_child_name(GTK_STACK(stack), "process_box");
+        gtk_stack_set_visible_child_name(GTK_STACK(stack), "process_page");
     }
 }
 
+// Kill_button: kills the process and returns to the application selector
+void on_kill_button_clicked(GtkWidget *widget, gpointer user_data)
+{
+    GtkBuilder *builder = (GtkBuilder *)user_data;
+
+    GtkWidget *stack = GTK_WIDGET(gtk_builder_get_object(builder, "main_stack"));
+
+    gtk_stack_set_visible_child_name(GTK_STACK(stack), "selector_box");
+}
 
 // Connect all signal handlers and initialize dynamic parts of the GUI
 void gui_connect_signals(GtkBuilder *builder)
@@ -121,6 +132,11 @@ void gui_connect_signals(GtkBuilder *builder)
     GtkWidget *logo_button = GTK_WIDGET(gtk_builder_get_object(builder, "logo_button"));
     if (logo_button != NULL)
         g_signal_connect(logo_button, "clicked", G_CALLBACK(on_logo_clicked), NULL);
+
+    // Connect kill_button
+    GtkWidget *kill_button = GTK_WIDGET(gtk_builder_get_object(builder, "kill_button"));
+    if (kill_button != NULL)
+        g_signal_connect(kill_button, "clicked", G_CALLBACK(on_kill_button_clicked), builder);
 
     // Conect the launch_button
     GtkWidget *launch_button = GTK_WIDGET(gtk_builder_get_object(builder, "launch_button"));

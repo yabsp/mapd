@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(MemAnalyzer C)
 
+set(OUTDIR ${CMAKE_BINARY_DIR})
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall -Wextra -fPIC -g -pthread")
 
@@ -67,11 +68,7 @@ endif()
 # Custom targets for CI or test automation
 
 add_custom_target(valgrind-analyzer
-        COMMAND timeout 10s valgrind --leak-check=full --show-leak-kinds=all --log-file=${OUTDIR}/valgrind-analyzer.log ${OUTDIR}/analyzer
-        COMMAND sleep 12
-        COMMAND cat ${OUTDIR}/valgrind-analyzer.log
-        COMMAND bash -c "if grep \"definitely lost: [1-9][0-9]* bytes\" ${OUTDIR}/valgrind-analyzer.log; then echo \"Memory leaks found in analyzer\"; exit 1; else echo \"No leaks detected in analyzer\"; fi"
-        DEPENDS analyzer
+        COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/scripts/valgrind-analyzer.sh
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
@@ -82,6 +79,6 @@ add_custom_target(valgrind-test
 )
 
 add_custom_target(clean-all
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${OUTDIR}
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )

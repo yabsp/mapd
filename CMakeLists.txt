@@ -76,9 +76,9 @@ add_custom_target(valgrind-analyzer
 )
 
 add_custom_target(valgrind-test
-        COMMAND bash -c "if valgrind --leak-check=full --error-exitcode=1 ${OUTDIR}/test_valgrind; then echo \"Leak not detected — test failed\"; exit 1; else echo \"Leak detected — Valgrind is working as expected\"; fi"
-        DEPENDS test_valgrind
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/scripts/valgrind-test.sh
+		DEPENDS test_valgrind
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
 add_custom_target(clean-all

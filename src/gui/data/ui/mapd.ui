@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 0.96.1 -->
+<interface>
+  <!-- interface-name mapdtest.ui -->
+  <requires lib="gtk" version="4.6"/>
+  <object class="GtkApplicationWindow" id="main_window">
+    <property name="title">Memory Allocator Problem Detector</property>
+    <property name="titlebar">
+      <object class="GtkHeaderBar" id="header_bar"/>
+    </property>
+    <child>
+      <object class="GtkBox" id="main_box">
+        <property name="margin-bottom">10</property>
+        <property name="margin-end">10</property>
+        <property name="margin-start">10</property>
+        <property name="margin-top">10</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <child>
+          <object class="GtkBox" id="logo_box">
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkButton" id="logo_button">
+                <property name="child">
+                  <object class="GtkImage" id="logo_image">
+                    <property name="file">/org/unibas/mapd/gui/data/images/logo.svg</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="selector_box">
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkLabel" id="select_app_label">
+                <property name="label">Select Appliaction:</property>
+                <property name="width-request">180</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="select_app_button">
+                <property name="label">Choose Application</property>
+                <property name="width-request">250</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="selected_app_label">
+                <property name="label">No Application Selected</property>
+                <property name="width-request">250</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="launch_box">
+            <property name="spacing">10</property>
+            <child>
+              <object class="GtkLabel" id="args_label">
+                <property name="label">Select Arguments:</property>
+                <property name="width-request">180</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkEntry" id="args_entry">
+                <property name="placeholder-text">e.g. --leak</property>
+                <property name="width-request">250</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="launch_button">
+                <property name="label">Launch</property>
+                <property name="width-request">250</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="grid_header_box">
+            <property name="spacing">20</property>
+            <child>
+              <object class="GtkLabel" id="client_number_label">
+                <property name="label">Client Number</property>
+                <property name="width-request">200</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="process_label">
+                <property name="label">Process</property>
+                <property name="width-request">200</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="kill_label">
+                <property name="label">Kill Button</property>
+                <property name="width-request">200</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkGrid" id="client_grid">
+            <property name="column-spacing">20</property>
+            <property name="row-spacing">10</property>
+            <property name="width-request">200</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="command_box">
+            <property name="orientation">vertical</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

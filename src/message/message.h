@@ -31,7 +31,8 @@ extern MessageQueue message_queue;
 
 void enqueue_message(const Message* msg);
 Message dequeue_message();
-
 Message parse_json_to_message(const char* json_str, int client_id);
+void message_free(Message* msg);
+Message* message_copy(const Message* src);
 
 #endif

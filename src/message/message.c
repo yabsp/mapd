@@ -1,6 +1,8 @@
 #include "message.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "../lib/cJSON.h"
 
 MessageQueue message_queue = {
@@ -67,3 +69,21 @@ Message parse_json_to_message(const char* json_str, int client_id) {
     cJSON_Delete(root);
     return msg;
 }
+
+void message_free(Message *msg)
+{
+    if (!msg) return;
+    free(msg);
+}
+
+Message* message_copy(const Message* src)
+{
+    if (!src) return NULL;
+
+    Message* copy = malloc(sizeof(Message));
+    if (!copy) return NULL;
+
+    memcpy(copy, src, sizeof(Message));
+    return copy;
+}
+

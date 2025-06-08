@@ -38,6 +38,7 @@ MainView* main_view_new(GtkApplication *app)
     view->client_grid = GTK_WIDGET(gtk_builder_get_object(builder, "client_grid"));
     view->logo_button = GTK_WIDGET(gtk_builder_get_object(builder, "logo_button"));
     view->client_grid = GTK_WIDGET(gtk_builder_get_object(builder, "client_grid"));
+    view->log_text_view = GTK_WIDGET(gtk_builder_get_object(builder, "log_text_view"));
 
     g_assert(GTK_IS_GRID(view->client_grid));
 

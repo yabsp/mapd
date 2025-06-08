@@ -20,6 +20,7 @@ typedef struct {
     GtkWidget *launch_button;
     GtkWidget *client_grid;
     GtkWidget *logo_button;
+    GtkWidget *log_text_view;
 } MainView;
 
 /**

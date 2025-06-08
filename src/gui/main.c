@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include "controller/main_controller.h"
+#include "analyzer.h"
 
 /**
  * activate:
@@ -13,6 +14,7 @@
 static void activate(GtkApplication *app, gpointer user_data)
 {
     MainController *controller = main_controller_new(app);
+    (void)user_data;
 }
 
 /**
@@ -28,18 +30,18 @@ static void activate(GtkApplication *app, gpointer user_data)
  */
 int main (int argc, char **argv)
 {
-    GtkApplication *app;
-    int status;
+    GtkApplication* app = gtk_application_new("com.unibas.mapd", G_APPLICATION_FLAGS_NONE);
+
+    // Initiate the analyzer
+    analyzer_init();
 
     // Create a new GtkApplication instance
-    app = gtk_application_new ("org.unibas.mapd", 0);
     g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
 
     // Run the GTK main loop
-    status = g_application_run (G_APPLICATION (app), argc, argv);
+    int status = g_application_run (G_APPLICATION (app), argc, argv);
 
     // Cleanup
     g_object_unref (app);
-
     return status;
 }

@@ -3,6 +3,7 @@
 
 #include "model/app_model.h"
 #include "view/main_view.h"
+#include "message.h"
 
 // Maximum number of concurrent clients supported
 #define MAX_CLIENTS 5
@@ -38,6 +39,11 @@ typedef struct {
 
     MainController *controller;
 } Client;
+
+typedef struct {
+    MainController* controller;
+    Message* message;
+} GuiUpdateData;
 
 /**
  * main_controller_new:

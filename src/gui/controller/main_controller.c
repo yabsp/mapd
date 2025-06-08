@@ -227,6 +227,54 @@ static void on_kill_client(Client *client)
     g_ptr_array_remove(client->controller->clients, client);
 }
 
+static gboolean update_gui_from_message(gpointer user_data)
+{
+    GuiUpdateData* data = (GuiUpdateData*)user_data;
+    Message* msg = data->message;
+    MainController* controller = data->controller;
+
+    // Build the log string from Message
+    gchar *log_line = g_strdup_printf(
+        "Client %d | %s | Addr: %s | Size: %zu | Thread: %lu | Time: %ld\n",
+        msg->client_id, msg->type, msg->addr, msg->size, msg->thread, msg->timestamp
+    );
+
+    // Append log line to TextView
+    GtkTextBuffer* buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(controller->view->log_text_view));
+    GtkTextIter end;
+    gtk_text_buffer_get_end_iter(buffer, &end);
+
+    // Insert text
+    gtk_text_buffer_insert(buffer, &end, log_line, -1);
+    g_free(log_line);
+
+    // Re-fetch end iter after insert to scroll to end
+    gtk_text_buffer_get_end_iter(buffer, &end);
+    GtkTextMark *mark = gtk_text_buffer_create_mark(buffer, NULL, &end, FALSE);
+    gtk_text_view_scroll_mark_onscreen(GTK_TEXT_VIEW(controller->view->log_text_view), mark);
+    gtk_text_buffer_delete_mark(buffer, mark);
+
+    message_free(msg);
+    g_free(data);
+    return G_SOURCE_REMOVE;
+}
+
+static void* analyzer_consumer_thread(void* arg)
+{
+    MainController *controller = (MainController*)arg;
+
+    while (1) {
+        Message msg = dequeue_message();
+
+        GuiUpdateData* data = g_malloc(sizeof(GuiUpdateData));
+        data->controller = controller;
+        data->message = message_copy(&msg);
+
+        g_idle_add(update_gui_from_message, data);
+    }
+    return NULL;
+}
+
 /**
  * main_controller_new:
  * @app: pointer to the GtkApplication instance.
@@ -243,9 +291,15 @@ MainController* main_controller_new(GtkApplication *app)
     controller->view = main_view_new(app);
     controller->clients = g_ptr_array_new_with_free_func(g_free);
 
+    // Connect the signals
     g_signal_connect(controller->view->logo_button, "clicked", G_CALLBACK(on_logo_button_clicked), NULL);
     g_signal_connect(controller->view->select_app_button, "clicked", G_CALLBACK(on_select_app_clicked), controller);
     g_signal_connect(controller->view->launch_button, "clicked", G_CALLBACK(on_launch_clicked), controller);
+
+    // Start consumer thread for messages
+    pthread_t consumer_thread;
+    pthread_create(&consumer_thread, NULL, analyzer_consumer_thread, controller);
+    pthread_detach(consumer_thread);
 
     return controller;
 }

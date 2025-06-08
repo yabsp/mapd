@@ -1,10 +1,31 @@
 #include <gtk/gtk.h>
-#include "view/gui.h"
+#include "controller/main_controller.h"
 
-// Forward declaration of activate function
-static void activate(GtkApplication *app, gpointer user_data);
+/**
+ * activate:
+ * @app: a pointer to the GtkApplication instance.
+ * @user_data: user data passed to the callback (unused here).
+ *
+ * Called when the application is activated.
+ * Initializes the main controller, which sets up components
+ * and connects the signals.
+ */
+static void activate(GtkApplication *app, gpointer user_data)
+{
+    MainController *controller = main_controller_new(app);
+}
 
-// Entry point of the application
+/**
+ * main:
+ * @argc: number of command-line arguments.
+ * @argv: array of command-line arguments.
+ *
+ * Entry point of the application. Creates a new GtkApplication
+ * instance, connects the "activate" signal, runs the GTK main loop, and
+ * performs cleanup upon exit.
+ *
+ * Returns: exit status code of the application.
+ */
 int main (int argc, char **argv)
 {
     GtkApplication *app;
@@ -21,11 +42,4 @@ int main (int argc, char **argv)
     g_object_unref (app);
 
     return status;
-}
-
-// Initialize the GUI and application state
-static void activate(GtkApplication *app, gpointer user_data)
-{
-    // Build and display the application GUI
-    build_gui(app);
 }

@@ -24,12 +24,13 @@ target_link_libraries(memwrap PRIVATE message)
 set_target_properties(memwrap PROPERTIES OUTPUT_NAME "mem_wrap")
 
 # --- Build analyzer executable ---
-add_executable(analyzer
-    src/analyzer/analyzer.c
-    src/analyzer/fragmentation.c
+add_library(analyzer STATIC
+        src/analyzer/analyzer.c
+        src/analyzer/fragmentation.c
 )
-target_include_directories(analyzer PRIVATE src/analyzer src/message)
-target_link_libraries(analyzer PRIVATE message pthread)
+target_include_directories(analyzer PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/message
+)
 
 # --- Build GUI executable ---
 
@@ -53,6 +54,8 @@ add_executable(gui
 )
 
 target_include_directories(gui PRIVATE
+        src
+        src/analyzer
         src/gui
         src/gui/controller
         src/gui/view
@@ -60,7 +63,7 @@ target_include_directories(gui PRIVATE
         ${CMAKE_BINARY_DIR}
 )
 
-target_link_libraries(gui PRIVATE PkgConfig::GTK4 pthread message)
+target_link_libraries(gui PRIVATE PkgConfig::GTK4 analyzer message memwrap)
 
 # --- Build test_alloc executable ---
 add_executable(test_alloc tests/test_alloc.c)

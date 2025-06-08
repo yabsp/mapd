@@ -5,7 +5,6 @@
 #include <pthread.h>
 #include <time.h>
 
-
 typedef struct {
     int client_id;
     char type[32];

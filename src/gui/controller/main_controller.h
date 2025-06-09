@@ -4,6 +4,8 @@
 #include "model/app_model.h"
 #include "view/main_view.h"
 #include "message.h"
+#include "fragmentation.h"
+#include "analyzer/analyzer.h"
 
 // Maximum number of concurrent clients supported
 #define MAX_CLIENTS 5
@@ -11,21 +13,21 @@
 /**
  * MainController:
  *
- * Represents the main controller in the MVC architecture.
- * Coordinates the application model, view, and the list of running clients.
+ * Represents the main controller in the MVC architecture. Coordinates the application model, view, the options and
+ * the list of running clients.
  */
 typedef struct {
     AppModel *model;
     MainView *view;
+    AnalyzerOptions* options;
     GPtrArray *clients;
 } MainController;
 
 /**
  * Client:
  *
- * Represents a launched client subprocess.
- * Stores information about the subprocess, its file path, ID,
- * and the associated UI elements for displaying and controlling it.
+ * Represents a launched client subprocess. Stores information about the subprocess, its file path, ID, and the
+ * associated UI elements for displaying and controlling it.
  */
 typedef struct {
     char *file_path;
@@ -40,38 +42,45 @@ typedef struct {
     MainController *controller;
 } Client;
 
+/**
+ * GuiUpdateData:
+ *
+ * Represents the data needed to update the GUI
+ */
 typedef struct {
     MainController* controller;
     Message* message;
 } GuiUpdateData;
 
 /**
+ * OptionsDialogData:
+ *
+ * Holds widget pointers and controller to pass to the options dialog response callback.
+ */
+typedef struct {
+    GtkSpinButton *min_thresh_spin;
+    GtkSpinButton *max_thresh_spin;
+    GtkSwitch *info_log_switch;
+    MainController *controller;
+} OptionsDialogData;
+
+/**
  * main_controller_new:
  *
- * Creates and initializes a new MainController instance.
- * Sets up the model, view, and connects signal handlers.
+ * Creates and initializes a new MainController instance. Sets up the model, view, and connects signal handlers.
  *
- * @param app: The GtkApplication instance.
- * @return Pointer to the newly allocated MainController.
+ * @param app The GtkApplication instance
+ * @return Pointer to the newly allocated MainController
  */
 MainController* main_controller_new(GtkApplication *app);
 
 /**
  * main_controller_free:
  *
- * Frees all resources associated with the MainController instance,
- * including the model, view, client list, and the controller itself.
+ * Frees all resources associated with the MainController instance, model, view and client list.
  *
- * @param controller: The MainController instance to free.
+ * @param controller The MainController instance to free
  */
 void main_controller_free(MainController *controller);
-
-// Internal function declarations
-static void on_select_app_clicked(GtkButton *button, gpointer user_data);
-static void on_file_dialog_response(GtkNativeDialog *dialog, int response, gpointer user_data);
-static GSubprocess* launch_client_with_memwrap(const char *file_path, const char *args_text);
-static void on_launch_clicked(GtkButton *button, gpointer user_data);
-static void add_client_to_grid(MainController *controller, Client *client);
-static void on_kill_client(Client *client);
 
 #endif //MAIN_CONTROLLER_H

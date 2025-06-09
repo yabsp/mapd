@@ -34,5 +34,6 @@ Message dequeue_message();
 Message parse_json_to_message(const char* json_str, int client_id);
 void message_free(Message* msg);
 Message* message_copy(const Message* src);
+void create_connection_message(int client_id, const char* event);
 
 #endif

@@ -50,6 +50,7 @@ Message parse_json_to_message(const char* json_str, int client_id) {
     cJSON* root = cJSON_Parse(json_str);
     if (!root) return msg;
 
+
     cJSON* type = cJSON_GetObjectItem(root, "type");
     cJSON* addr = cJSON_GetObjectItem(root, "addr");
     cJSON* size = cJSON_GetObjectItem(root, "size");
@@ -69,6 +70,29 @@ Message parse_json_to_message(const char* json_str, int client_id) {
     cJSON_Delete(root);
     return msg;
 }
+
+void create_connection_message(int client_id, const char* event) {
+    Message msg;
+    memset(&msg, 0, sizeof(msg));
+    msg.client_id = client_id;
+    strncpy(msg.type, "connection", sizeof(msg.type));
+    strncpy(msg.addr, "-", sizeof(msg.addr));
+    msg.size = 0;
+    msg.thread = (unsigned long)pthread_self();
+    msg.timestamp = time(NULL);
+    strncpy(msg.severity, "info", sizeof(msg.severity));
+
+    if (strcmp(event, "connected") == 0) {
+        snprintf(msg.description, sizeof(msg.description), "New connection: Client %d.", client_id);
+    } else if (strcmp(event, "disconnected") == 0) {
+        snprintf(msg.description, sizeof(msg.description), "Connection closed: Client %d.", client_id);
+    } else {
+        snprintf(msg.description, sizeof(msg.description), "Client %d %s.", client_id, event);
+    }
+
+    enqueue_message(&msg);
+}
+
 
 void message_free(Message *msg)
 {

@@ -6,7 +6,13 @@
   <object class="GtkApplicationWindow" id="main_window">
     <property name="title">Memory Allocator Problem Detector</property>
     <property name="titlebar">
-      <object class="GtkHeaderBar" id="header_bar"/>
+      <object class="GtkHeaderBar" id="header_bar">
+        <child>
+          <object class="GtkButton" id="options_button">
+            <property name="label">Options</property>
+          </object>
+        </child>
+      </object>
     </property>
     <child>
       <object class="GtkBox" id="main_box">
@@ -88,33 +94,38 @@
           </object>
         </child>
         <child>
+          <object class="GtkBox" id="fragment_box"/>
+        </child>
+        <child>
           <object class="GtkBox" id="grid_header_box">
+            <property name="hexpand">True</property>
             <property name="spacing">20</property>
             <child>
               <object class="GtkLabel" id="client_number_label">
                 <property name="label">Client Number</property>
-                <property name="width-request">200</property>
+                <property name="width-request">150</property>
               </object>
             </child>
             <child>
               <object class="GtkLabel" id="process_label">
                 <property name="label">Process</property>
-                <property name="width-request">200</property>
+                <property name="width-request">150</property>
               </object>
             </child>
             <child>
               <object class="GtkLabel" id="kill_label">
                 <property name="label">Kill Button</property>
-                <property name="width-request">200</property>
+                <property name="width-request">150</property>
               </object>
             </child>
           </object>
         </child>
         <child>
           <object class="GtkGrid" id="client_grid">
-            <property name="column-spacing">20</property>
-            <property name="row-spacing">10</property>
-            <property name="width-request">200</property>
+            <property name="column-spacing">12</property>
+            <property name="hexpand">True</property>
+            <property name="row-spacing">12</property>
+            <property name="width-request">150</property>
           </object>
         </child>
       </object>

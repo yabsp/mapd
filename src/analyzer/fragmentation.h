@@ -11,6 +11,6 @@
 #include "message.h"
 #include "analyzer.h"
 
-void* fragmentation_thread( void* arg);
+void* fragmentation_thread(const void* arg);
 
 #endif

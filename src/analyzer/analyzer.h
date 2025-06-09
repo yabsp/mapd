@@ -66,5 +66,5 @@ void* handle_client(void* arg);
  * @param arg Unused
  * @return Always NULL
  */
-void* gui_consumer_thread(void* arg);
+void* gui_consumer_thread(const void* arg);
 #endif

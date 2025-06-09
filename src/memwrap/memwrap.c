@@ -11,12 +11,25 @@
 #include <signal.h>
 #include <stdint.h>
 #include <sys/mman.h>
-#include <execinfo.h>
 #include "memwrap.h"
 
 #define SOCKET_PATH "/tmp/mapd_socket"
 #define MAX_TRACKED_ALLOCS 10000
 #define MAX_FREED_REGIONS 10000
+#define GUARD_THRESHOLD 1024
+
+/**
+ * @file memwrap.c
+ * @brief LD_PRELOAD-based memory wrapper to detect leaks, overflows, and dangling pointers.
+ *
+ * Tracks malloc/free activity via mmap/mprotect, logs events over a UNIX socket,
+ * and installs a signal handler for runtime crash detection.
+ * Supports runtime modes via MAPD_MODE (debug, test, perf).
+ */
+
+// Runtime modes
+enum MAPDMode { MODE_DEBUG, MODE_TEST, MODE_PERF };
+static enum MAPDMode current_mode = MODE_DEBUG;
 
 static int sock_fd = -1;
 static void* (*real_malloc)(size_t) = NULL;
@@ -51,14 +64,29 @@ const char* event_type_to_string(EventType type) {
     }
 }
 
-void send_json_event(EventType type, void* addr, size_t size) {
-    if (sock_fd == -1) return;
+/**
+ * @brief Send a memory event as newline-delimited JSON over the UNIX socket.
+ *
+ * @param type Event type (e.g., malloc, free, overflow).
+ * @param addr Pointer associated with the event.
+ * @param size Size of the memory involved (if relevant).
+ */
+
+
+void send_json_event(const EventType type, void* addr, const size_t size)
+{
+    if (sock_fd == -1 || current_mode == MODE_PERF) return;
     char msg[512];
     snprintf(msg, sizeof(msg),
         "{ \"type\": \"%s\", \"addr\": \"%p\", \"size\": %zu, \"thread\": %lu, \"timestamp\": %ld }\n",
         event_type_to_string(type), addr, size,
         (unsigned long)pthread_self(), time(NULL));
-    write(sock_fd, msg, strlen(msg));
+    // only write to socket if no malloc or free -> reduces I/O
+    if (type != EVENT_FREE && type != EVENT_MALLOC)
+    {
+        write(sock_fd, msg, strlen(msg));
+    }
+
 }
 
 void detect_memory_leaks() {
@@ -69,7 +97,15 @@ void detect_memory_leaks() {
     pthread_mutex_unlock(&allocation_lock);
 }
 
-void handle_segv(int sig __attribute__((unused)), siginfo_t* info, void* context __attribute__((unused))) {
+/**
+ * @brief SIGSEGV handler to detect and report dangling pointer or buffer overflow errors.
+ *
+ * Checks faulting address against known freed and allocated regions,
+ * sends appropriate events, and terminates the process cleanly.
+ */
+
+
+void handle_segv(int sig __attribute__((unused)), const siginfo_t* info, void* context __attribute__((unused))) {
     void* fault_addr = info->si_addr;
 
     // Check for dangling pointer
@@ -116,11 +152,16 @@ void enable_tracking() {
 
 __attribute__((constructor))
 void setup_connection() {
+    const char* mode_env = getenv("MAPD_MODE");
+    if (mode_env) {
+        if (strcmp(mode_env, "test") == 0) current_mode = MODE_TEST;
+        else if (strcmp(mode_env, "perf") == 0) current_mode = MODE_PERF;
+        else current_mode = MODE_DEBUG;
+    }
     sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock_fd == -1) return;
 
-    struct sockaddr_un addr;
-    memset(&addr, 0, sizeof(addr));
+    struct sockaddr_un addr = {0};
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
 
@@ -131,15 +172,21 @@ void setup_connection() {
         fprintf(stderr, "[Wrapper] Connected to analyzer.\n");
     }
 
-    struct sigaction sa;
-    memset(&sa, 0, sizeof(sa));
+    struct sigaction sa = {0};
     sa.sa_flags = SA_SIGINFO;
     sa.sa_sigaction = handle_segv;
     sigaction(SIGSEGV, &sa, NULL);
 }
 
+/**
+ * @brief Replacement for malloc(), using mmap and optional guard pages.
+ *
+ * Applies runtime mode logic: falls back to real malloc in perf mode.
+ * Otherwise, uses mmap (with guard page depending of alloc size) for overflow detection.
+ */
+
 void* malloc(size_t size) {
-    if (!tracking_enabled) {
+    if (!tracking_enabled || current_mode == MODE_PERF) {
         if (!real_malloc) real_malloc = dlsym(RTLD_NEXT, "malloc");
         return real_malloc(size);
     }
@@ -151,8 +198,11 @@ void* malloc(size_t size) {
     void* base = mmap(NULL, total, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (base == MAP_FAILED) return NULL;
 
-    void* guard = (void*)((uintptr_t)base + usable);
-    mprotect(guard, pagesize, PROT_NONE);
+    if (size >= GUARD_THRESHOLD)
+    {
+        void* guard = (void*)((uintptr_t)base + usable);
+        mprotect(guard, pagesize, PROT_NONE);
+    }
 
     pthread_mutex_lock(&allocation_lock);
     if (allocation_count < MAX_TRACKED_ALLOCS) {
@@ -168,8 +218,14 @@ void* malloc(size_t size) {
     return base;
 }
 
+/**
+ * @brief Replacement for free(), applies PROT_NONE to detect use-after-free.
+ *
+ * Adds the freed region to a tracking list. If mprotect fails, region is unmapped.
+ */
+
 void free(void* ptr) {
-    if (!tracking_enabled || ptr == NULL) {
+    if (!tracking_enabled || ptr == NULL || current_mode == MODE_PERF) {
         if (!real_free) real_free = dlsym(RTLD_NEXT, "free");
         real_free(ptr);
         return;

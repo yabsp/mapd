@@ -4,9 +4,7 @@
 //#define FRAG_SMALL_THRESHOLD 3500
 //#define FRAG_LARGE_THRESHOLD 200
 
-extern AnalyzerOptions* analyzer_options;
-
-void *fragmentation_thread(void *arg)
+void *fragmentation_thread(const void *arg)
 {
     (void) arg;
 

@@ -15,15 +15,14 @@ AnalyzerOptions* analyzer_options = NULL;
  * @param arg Unused
  * @return NULL when thread exits
  */
-static void* server_socket_thread(void* arg)
+static void* server_socket_thread(const void* arg)
 {
     (void)arg;
 
-    int server_fd;
     struct sockaddr_un addr;
 
     // Create UNIX domain socket
-    server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    const int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (server_fd == -1)
     {
         perror("socket"); exit(EXIT_FAILURE);
@@ -171,7 +170,7 @@ void* handle_client(void* arg) {
  * @param arg: Unused
  * @return NULL when thread exits
  */
-void* gui_consumer_thread(void* arg)
+void* gui_consumer_thread(const void* arg)
 {
     (void)arg;
 

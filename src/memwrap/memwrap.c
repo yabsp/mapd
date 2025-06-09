@@ -65,6 +65,18 @@ const char* event_type_to_string(EventType type) {
 }
 
 /**
+ * @brief Get the hashed value of a ptr. Used to hash address pointers.
+ * malloc is 16 bytes aligned on 64-bit systems -> last 4 bits will most likely be zero.
+ * Therefore, shift right 4 bits.
+ *
+ * @param ptr Pointer of the address.
+ * @return Hashed value of the pointer
+ */
+unsigned long hash_ptr(void* ptr) {
+    return ((uintptr_t)ptr >> 4) % MAX_TRACKED_ALLOCS;
+}
+
+/**
  * @brief Send a memory event as newline-delimited JSON over the UNIX socket.
  *
  * @param type Event type (e.g., malloc, free, overflow).
@@ -80,19 +92,35 @@ void send_json_event(const EventType type, void* addr, const size_t size)
     snprintf(msg, sizeof(msg),
         "{ \"type\": \"%s\", \"addr\": \"%p\", \"size\": %zu, \"thread\": %lu, \"timestamp\": %ld }\n",
         event_type_to_string(type), addr, size,
-        (unsigned long)pthread_self(), time(NULL));
+    (unsigned long)pthread_self(), time(NULL));
     // only write to socket if no malloc or free -> reduces I/O
-    if (type != EVENT_FREE && type != EVENT_MALLOC)
+    if (current_mode == MODE_DEBUG)
+    {
+        write(sock_fd, msg, strlen(msg));
+    } else if (type != EVENT_FREE && type != EVENT_MALLOC)
     {
         write(sock_fd, msg, strlen(msg));
     }
 
 }
 
+/**
+ * @brief Scan the allocation table and report unfreed memory blocks.
+ *
+ * This function iterates through all entries in the allocation hash table
+ * and sends a `memory_leak` event for each entry that was allocated but
+ * not freed. It is typically called during program shutdown (via destructor)
+ * to detect memory leaks.
+ *
+ * Thread-safe: acquires the allocation lock to ensure consistent view of the table.
+ */
 void detect_memory_leaks() {
     pthread_mutex_lock(&allocation_lock);
-    for (int i = 0; i < allocation_count; ++i) {
-        send_json_event(EVENT_MEMORY_LEAK, allocations[i].addr, allocations[i].requested_size);
+    for (int i = 0; i < MAX_TRACKED_ALLOCS; ++i) {
+        if (allocations[i].addr != NULL)
+        {
+            send_json_event(EVENT_MEMORY_LEAK, allocations[i].addr, allocations[i].requested_size);
+        }
     }
     pthread_mutex_unlock(&allocation_lock);
 }
@@ -105,8 +133,8 @@ void detect_memory_leaks() {
  */
 
 
-void handle_segv(int sig __attribute__((unused)), const siginfo_t* info, void* context __attribute__((unused))) {
-    void* fault_addr = info->si_addr;
+void handle_segv(int sig __attribute__((unused)), siginfo_t* info, void* context __attribute__((unused))) {
+    const void* fault_addr = info->si_addr;
 
     // Check for dangling pointer
     pthread_mutex_lock(&freed_lock);
@@ -126,7 +154,7 @@ void handle_segv(int sig __attribute__((unused)), const siginfo_t* info, void* c
     // Check for buffer overflow
     pthread_mutex_lock(&allocation_lock);
     size_t pagesize = sysconf(_SC_PAGESIZE);
-    for (int i = 0; i < allocation_count; ++i) {
+    for (int i = 0; i < MAX_TRACKED_ALLOCS; i++) {
         void* guard = (void*)((uintptr_t)allocations[i].addr + allocations[i].allocated_size - pagesize);
         void* end = (void*)((uintptr_t)guard + pagesize);
         if (fault_addr >= guard && fault_addr < end) {
@@ -149,6 +177,14 @@ exit_crash:
 void enable_tracking() {
     tracking_enabled = 1;
 }
+
+/**
+ * @brief Constructor function that runs before main().
+ *
+ * Establishes the UNIX socket connection to the analyzer and installs
+ * the custom SIGSEGV handler. Also parses the MAPD_MODE environment
+ * variable to set the runtime behaviour of the wrapper.
+ */
 
 __attribute__((constructor))
 void setup_connection() {
@@ -182,7 +218,7 @@ void setup_connection() {
  * @brief Replacement for malloc(), using mmap and optional guard pages.
  *
  * Applies runtime mode logic: falls back to real malloc in perf mode.
- * Otherwise, uses mmap (with guard page depending of alloc size) for overflow detection.
+ * Otherwise, uses mmap (with guard page depending on alloc size) for overflow detection.
  */
 
 void* malloc(size_t size) {
@@ -191,9 +227,9 @@ void* malloc(size_t size) {
         return real_malloc(size);
     }
 
-    size_t pagesize = sysconf(_SC_PAGESIZE);
-    size_t usable = ((size + pagesize - 1) / pagesize) * pagesize;
-    size_t total = usable + pagesize;
+    const size_t pagesize = sysconf(_SC_PAGESIZE);
+    const size_t usable = ((size + pagesize - 1) / pagesize) * pagesize;
+    const size_t total = usable + pagesize;
 
     void* base = mmap(NULL, total, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (base == MAP_FAILED) return NULL;
@@ -205,12 +241,15 @@ void* malloc(size_t size) {
     }
 
     pthread_mutex_lock(&allocation_lock);
-    if (allocation_count < MAX_TRACKED_ALLOCS) {
-        allocations[allocation_count++] = (AllocationEntry){
-            .addr = base,
-            .requested_size = size,
-            .allocated_size = total
-        };
+    const unsigned long h = hash_ptr(base);
+    unsigned long idx;
+    for (int i = 0; i < MAX_TRACKED_ALLOCS; i++) {
+        idx = (h + i) % MAX_TRACKED_ALLOCS;
+        if (allocations[idx].addr == NULL) {
+            allocations[idx] = (AllocationEntry){base, size, total};
+            allocation_count++;
+            break;
+        }
     }
     pthread_mutex_unlock(&allocation_lock);
 
@@ -235,12 +274,18 @@ void free(void* ptr) {
     size_t requested = 0, alloc_size = 0;
 
     pthread_mutex_lock(&allocation_lock);
-    for (int i = 0; i < allocation_count; ++i) {
-        if (allocations[i].addr == ptr) {
-            requested = allocations[i].requested_size;
-            alloc_size = allocations[i].allocated_size;
-            allocations[i] = allocations[--allocation_count];
+    const unsigned long h = hash_ptr(ptr);
+    unsigned long idx;
+    for (int i = 0; i < MAX_TRACKED_ALLOCS; i++)
+    {
+        idx = (h + i) % MAX_TRACKED_ALLOCS;
+        if (allocations[idx].addr == ptr)
+        {
+            requested = allocations[idx].requested_size;
+            alloc_size = allocations[idx].allocated_size;
+            allocations[idx].addr = NULL;
             found = 1;
+            allocation_count--;
             break;
         }
     }
@@ -268,6 +313,13 @@ void free(void* ptr) {
 
     munmap(ptr, alloc_size);  // fallback
 }
+
+/**
+ * @brief Destructor function that runs on program exit.
+ *
+ * Performs cleanup: reports any detected memory leaks,
+ * closes the analyzer socket, and resets internal state.
+ */
 
 __attribute__((destructor))
 void shutdown_connection() {

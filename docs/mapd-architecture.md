@@ -67,7 +67,6 @@ Handles both injected and non-injected processes:
 | Thread Name       | Function                                                              |
 |-------------------|-----------------------------------------------------------------------|
 | Buddyinfo Monitor | Monitors kernel-level fragmentation via `/proc/buddyinfo`            |
-| /proc Monitor     | Scans `/proc/[pid]/status`, `/maps`, `/smaps` for memory metrics     |
 | GUI Thread        | Displays notifications (e.g., `notify-send`, GTK, Qt)                |
 | Event Listener    | Receives live memory events from wrappers (one thread per program)   |
 | Data Aggregator   | Logs, aggregates, reports system-wide memory behaviour               |
@@ -76,21 +75,20 @@ Handles both injected and non-injected processes:
 
 ## Detection Capabilities Matrix
 
-| Issue                         | Detectable Without Injection | Requires Injection |
-|------------------------------|------------------------------|--------------------|
-| Memory leaks                 | No                         | Yes             |
-| Dangling pointers            | No                         | Yes             |
-| Buffer overflows             | No                         | Yes             |
-| Double frees                 | No                         | Yes             |
-| Memory fragmentation         | Yes (via `/proc/buddyinfo`) | No              |
-| Overall heap/memory usage    | Yes (via `/proc`)          | No              |
+| Issue                         | Detectable Without Injection | 
+|------------------------------|------------------------------|
+| Memory leaks                 | No                         |
+| Dangling pointers            | No                         |
+| Buffer overflows             | No                         |
+| Double frees                 | No                         |
+| Memory fragmentation         | Yes (via `/proc/buddyinfo`) |
 
 ---
 
 ## IPC Protocol (Wrapper <-> Analyzer)
 
-- **Protocol**: Custom message format (e.g. CSV, JSON, ...)
-- **Transport**: UNIX domain sockets (maybe other, domain sockets are recommended by a lot of sources)
+- **Protocol**: Custom message format (e.g. JSON)
+- **Transport**: UNIX domain sockets
 - **Events**:
   - `malloc size=64 addr=0x1234`
   - `free addr=0x1234`

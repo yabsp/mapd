@@ -12,11 +12,14 @@
 #include <stdint.h>
 #include <sys/mman.h>
 #include "memwrap.h"
+#include "../analyzer/analyzer.h"
 
 #define SOCKET_PATH "/tmp/mapd_socket"
-#define MAX_TRACKED_ALLOCS 10000
-#define MAX_FREED_REGIONS 10000
+#define MAX_TRACKED_ALLOCS 8192 // 2¹³
+#define MAX_FREED_REGIONS 8192
 #define GUARD_THRESHOLD 1024
+#define HASH_TABLE_BITS 16  // 2^16 buckets = 65536
+#define HASH_MULTIPLIER 11400714819323198485llu  // 2^64 / golden ratio
 
 /**
  * @file memwrap.c
@@ -73,7 +76,7 @@ const char* event_type_to_string(EventType type) {
  * @return Hashed value of the pointer
  */
 unsigned long hash_ptr(void* ptr) {
-    return ((uintptr_t)ptr >> 4) % MAX_TRACKED_ALLOCS;
+    return (((uintptr_t)ptr) * HASH_MULTIPLIER) >> (64 - HASH_TABLE_BITS);
 }
 
 /**
@@ -93,15 +96,7 @@ void send_json_event(const EventType type, void* addr, const size_t size)
         "{ \"type\": \"%s\", \"addr\": \"%p\", \"size\": %zu, \"thread\": %lu, \"timestamp\": %ld }\n",
         event_type_to_string(type), addr, size,
     (unsigned long)pthread_self(), time(NULL));
-    // only write to socket if no malloc or free -> reduces I/O
-    if (current_mode == MODE_DEBUG)
-    {
-        write(sock_fd, msg, strlen(msg));
-    } else if (type != EVENT_FREE && type != EVENT_MALLOC)
-    {
-        write(sock_fd, msg, strlen(msg));
-    }
-
+    write(sock_fd, msg, strlen(msg));
 }
 
 /**
@@ -235,6 +230,10 @@ void* malloc(size_t size) {
     if (base == MAP_FAILED) return NULL;
 
     if (size >= GUARD_THRESHOLD)
+    {
+        void* guard = (void*)((uintptr_t)base + usable);
+        mprotect(guard, pagesize, PROT_NONE);
+    } else if (current_mode == MODE_DEBUG)
     {
         void* guard = (void*)((uintptr_t)base + usable);
         mprotect(guard, pagesize, PROT_NONE);

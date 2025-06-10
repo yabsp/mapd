@@ -15,11 +15,10 @@
 #include "../analyzer/analyzer.h"
 
 #define SOCKET_PATH "/tmp/mapd_socket"
-#define MAX_TRACKED_ALLOCS 8192 // 2¹³
-#define MAX_FREED_REGIONS 8192
+#define MAX_TRACKED_ALLOCS 16384// 2¹⁴
+#define MAX_FREED_REGIONS 16384
 #define GUARD_THRESHOLD 1024
-#define HASH_TABLE_BITS 16  // 2^16 buckets = 65536
-#define HASH_MULTIPLIER 11400714819323198485llu  // 2^64 / golden ratio
+#define HASH_MULTIPLIER 11400714819323198485llu  // 2⁶⁴ / golden ratio
 
 /**
  * @file memwrap.c
@@ -32,7 +31,7 @@
 
 // Runtime modes
 enum MAPDMode { MODE_DEBUG, MODE_TEST, MODE_PERF };
-static enum MAPDMode current_mode = MODE_DEBUG;
+static enum MAPDMode current_mode = MODE_TEST;
 
 static int sock_fd = -1;
 static void* (*real_malloc)(size_t) = NULL;
@@ -68,15 +67,21 @@ const char* event_type_to_string(EventType type) {
 }
 
 /**
- * @brief Get the hashed value of a ptr. Used to hash address pointers.
- * malloc is 16 bytes aligned on 64-bit systems -> last 4 bits will most likely be zero.
- * Therefore, shift right 4 bits.
+ * @brief Computes a well-distributed hash value from a pointer using Fibonacci hashing.
  *
- * @param ptr Pointer of the address.
- * @return Hashed value of the pointer
+ * This function transforms a pointer into a hash index suitable for open-addressed hash tables.
+ * It uses Fibonacci hashing, a multiplicative hashing technique that spreads clustered inputs
+ * (such as memory addresses) uniformly across the table. This is especially useful to reduce
+ * collisions when tracking memory allocations where addresses are often aligned and sequential.
+ *
+ * The result is scaled down by shifting to fit into the target hash table size defined
+ * MAX_TRACKED_ALLOCS.
+ *
+ * @param ptr Memory address to be hashed (e.g., an allocation address).
+ * @return Hash index in the range [0, 2^14 - 1]
  */
 unsigned long hash_ptr(void* ptr) {
-    return (((uintptr_t)ptr) * HASH_MULTIPLIER) >> (64 - HASH_TABLE_BITS);
+    return (((uintptr_t)ptr) * HASH_MULTIPLIER) >> (64 - 14);
 }
 
 /**
@@ -86,8 +91,6 @@ unsigned long hash_ptr(void* ptr) {
  * @param addr Pointer associated with the event.
  * @param size Size of the memory involved (if relevant).
  */
-
-
 void send_json_event(const EventType type, void* addr, const size_t size)
 {
     if (sock_fd == -1 || current_mode == MODE_PERF) return;
@@ -126,8 +129,6 @@ void detect_memory_leaks() {
  * Checks faulting address against known freed and allocated regions,
  * sends appropriate events, and terminates the process cleanly.
  */
-
-
 void handle_segv(int sig __attribute__((unused)), siginfo_t* info, void* context __attribute__((unused))) {
     const void* fault_addr = info->si_addr;
 
@@ -180,7 +181,6 @@ void enable_tracking() {
  * the custom SIGSEGV handler. Also parses the MAPD_MODE environment
  * variable to set the runtime behaviour of the wrapper.
  */
-
 __attribute__((constructor))
 void setup_connection() {
     const char* mode_env = getenv("MAPD_MODE");
@@ -215,7 +215,6 @@ void setup_connection() {
  * Applies runtime mode logic: falls back to real malloc in perf mode.
  * Otherwise, uses mmap (with guard page depending on alloc size) for overflow detection.
  */
-
 void* malloc(size_t size) {
     if (!tracking_enabled || current_mode == MODE_PERF) {
         if (!real_malloc) real_malloc = dlsym(RTLD_NEXT, "malloc");
@@ -261,7 +260,6 @@ void* malloc(size_t size) {
  *
  * Adds the freed region to a tracking list. If mprotect fails, region is unmapped.
  */
-
 void free(void* ptr) {
     if (!tracking_enabled || ptr == NULL || current_mode == MODE_PERF) {
         if (!real_free) real_free = dlsym(RTLD_NEXT, "free");
@@ -319,7 +317,6 @@ void free(void* ptr) {
  * Performs cleanup: reports any detected memory leaks,
  * closes the analyzer socket, and resets internal state.
  */
-
 __attribute__((destructor))
 void shutdown_connection() {
     if (tracking_enabled && !crashed) {

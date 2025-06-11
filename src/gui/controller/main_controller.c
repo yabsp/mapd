@@ -170,12 +170,6 @@ static void on_launch_clicked(GtkButton *button, gpointer user_data)
         g_printerr("No application selected!\n");
         return;
     }
-
-    // Handles if too many clients
-    if (controller->clients->len >= MAX_CLIENTS) {
-        g_printerr("Maximum number of concurrent clients reached.\n");
-        return;
-    }
     launch_client_with_memwrap(file_path, args_text);
 }
 
@@ -383,7 +377,6 @@ MainController* main_controller_new(GtkApplication *app)
     MainController *controller = g_malloc(sizeof(MainController));
     controller->model = app_model_new();
     controller->view = main_view_new(app);
-    controller->clients = g_ptr_array_new_with_free_func(g_free);
     global_main_controller = controller;
 
     // Sets default for options

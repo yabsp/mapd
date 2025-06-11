@@ -7,22 +7,18 @@
 #include "fragmentation.h"
 #include "analyzer/analyzer.h"
 
-// Maximum number of concurrent clients supported
-#define MAX_CLIENTS 5
 
 gboolean update_fragmentation_label(gpointer data);
 
 /**
  * MainController:
  *
- * Represents the main controller in the MVC architecture. Coordinates the application model, view, the options and
- * the list of running clients.
+ * Represents the main controller in the MVC architecture. Coordinates the application model, view and the options
  */
 typedef struct {
     AppModel *model;
     MainView *view;
     AnalyzerOptions* options;
-    GPtrArray *clients;
 } MainController;
 
 extern MainController* global_main_controller;

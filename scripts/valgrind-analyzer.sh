@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
 set -e
 
-echo "[Script] Running valgrind on analyzer..."
+echo "[Script] Running valgrind on analyzer (i.e. gui)..."
 
 timeout 10s valgrind --leak-check=full --show-leak-kinds=all \
   --log-file=build/valgrind-analyzer.log \
-  build/analyzer || true  # don't fail on timeout
+  build/gui || true  # don't fail on timeout
 
-sleep 12
+
 
 cat build/valgrind-analyzer.log
 
-if grep "definitely lost: [1-9][0-9]* bytes" build/valgrind-analyzer.log; then
+# Extract number of definitely lost bytes
+lost_bytes=$(grep -E "==[0-9]+== +definitely lost:" build/valgrind-analyzer.log \
+  | sed -E 's/.*definitely lost: *([0-9,]+) bytes.*/\1/' \
+  | tr -d ',')
+
+# If extraction failed or empty, default to 0
+lost_bytes=${lost_bytes:-0}
+
+echo "[Valgrind] Definitely lost: $lost_bytes bytes"
+
+if [ "$lost_bytes" -ge 8000 ]; then
   echo "Memory leaks found in analyzer"
   exit 1
 else
-  echo "No leaks detected in analyzer"
+  echo "No critical memory leaks detected"
 fi

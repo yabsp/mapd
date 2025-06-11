@@ -1,4 +1,5 @@
 #include "message.h"
+#include "analyzer.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,22 +73,24 @@ Message parse_json_to_message(const char* json_str, int client_id) {
 }
 
 void create_connection_message(int client_id, const char* event) {
+    if (analyzer_options && analyzer_options->info_logs_enabled == 0)
+        return;
+
     Message msg;
     memset(&msg, 0, sizeof(msg));
     msg.client_id = client_id;
-    strncpy(msg.type, "connection", sizeof(msg.type));
     strncpy(msg.addr, "-", sizeof(msg.addr));
     msg.size = 0;
     msg.thread = (unsigned long)pthread_self();
     msg.timestamp = time(NULL);
     strncpy(msg.severity, "info", sizeof(msg.severity));
 
-    if (strcmp(event, "connected") == 0) {
+    if (strcmp(event, "connection") == 0) {
+        strncpy(msg.type, "connection", sizeof(msg.type));
         snprintf(msg.description, sizeof(msg.description), "New connection: Client %d.", client_id);
-    } else if (strcmp(event, "disconnected") == 0) {
+    } else if (strcmp(event, "disconnection") == 0) {
+        strncpy(msg.type, "disconnection", sizeof(msg.type));
         snprintf(msg.description, sizeof(msg.description), "Connection closed: Client %d.", client_id);
-    } else {
-        snprintf(msg.description, sizeof(msg.description), "Client %d %s.", client_id, event);
     }
 
     enqueue_message(&msg);

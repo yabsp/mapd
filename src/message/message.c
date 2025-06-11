@@ -1,6 +1,9 @@
 #include "message.h"
+#include "analyzer.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "../lib/cJSON.h"
 
 MessageQueue message_queue = {
@@ -48,6 +51,7 @@ Message parse_json_to_message(const char* json_str, int client_id) {
     cJSON* root = cJSON_Parse(json_str);
     if (!root) return msg;
 
+
     cJSON* type = cJSON_GetObjectItem(root, "type");
     cJSON* addr = cJSON_GetObjectItem(root, "addr");
     cJSON* size = cJSON_GetObjectItem(root, "size");
@@ -67,3 +71,46 @@ Message parse_json_to_message(const char* json_str, int client_id) {
     cJSON_Delete(root);
     return msg;
 }
+
+void create_connection_message(int client_id, const char* event) {
+    if (analyzer_options && analyzer_options->info_logs_enabled == 0)
+        return;
+
+    Message msg;
+    memset(&msg, 0, sizeof(msg));
+    msg.client_id = client_id;
+    strncpy(msg.addr, "-", sizeof(msg.addr));
+    msg.size = 0;
+    msg.thread = (unsigned long)pthread_self();
+    msg.timestamp = time(NULL);
+    strncpy(msg.severity, "info", sizeof(msg.severity));
+
+    if (strcmp(event, "connection") == 0) {
+        strncpy(msg.type, "connection", sizeof(msg.type));
+        snprintf(msg.description, sizeof(msg.description), "New connection: Client %d.", client_id);
+    } else if (strcmp(event, "disconnection") == 0) {
+        strncpy(msg.type, "disconnection", sizeof(msg.type));
+        snprintf(msg.description, sizeof(msg.description), "Connection closed: Client %d.", client_id);
+    }
+
+    enqueue_message(&msg);
+}
+
+
+void message_free(Message *msg)
+{
+    if (!msg) return;
+    free(msg);
+}
+
+Message* message_copy(const Message* src)
+{
+    if (!src) return NULL;
+
+    Message* copy = malloc(sizeof(Message));
+    if (!copy) return NULL;
+
+    memcpy(copy, src, sizeof(Message));
+    return copy;
+}
+

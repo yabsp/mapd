@@ -1,4 +1,4 @@
-# Memory Testing Suite
+# (outdated, referred to testing before CMake) Memory Testing Suite
 
 This document explains how to use the provided `Makefile` to build, run, and validate the memory analysis components of this project, how to use the tests without make and presents a tool to stress external memory fragmentation in Linux. It supports **automated tests**, **Valgrind verification**, and **manual test execution** using `LD_PRELOAD`.
 

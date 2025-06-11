@@ -15,7 +15,7 @@ AnalyzerOptions* analyzer_options = NULL;
  * @param arg Unused
  * @return NULL when thread exits
  */
-static void* server_socket_thread(const void* arg)
+static void* server_socket_thread(void* arg)
 {
     (void)arg;
 
@@ -115,7 +115,7 @@ void* handle_client(void* arg) {
 
     printf("[Analyzer] New connection: Client #%d (fd = %d)\n",
         ctx->client_number, ctx->client_fd);
-    create_connection_message(ctx->client_number, "connected");
+    create_connection_message(ctx->client_number, "connection");
 
     // Main receive loop
     while ((bytes_read = read(ctx->client_fd, buffer, sizeof(buffer) - 1)) > 0)
@@ -154,7 +154,7 @@ void* handle_client(void* arg) {
     }
 
     printf("[Analyzer] Client #%d disconnected.\n", ctx->client_number);
-    create_connection_message(ctx->client_number, "disconnected");
+    create_connection_message(ctx->client_number, "disconnection");
 
     // Clean
     close(ctx->client_fd);

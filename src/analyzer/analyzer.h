@@ -58,13 +58,4 @@ void analyzer_init(AnalyzerOptions* options);
  */
 void* handle_client(void* arg);
 
-/**
- * gui_consumer_thread:
- *
- * Background thread which consumes messages from the queue and prints logs for the GUI.
- *
- * @param arg Unused
- * @return Always NULL
- */
-void* gui_consumer_thread(const void* arg);
 #endif

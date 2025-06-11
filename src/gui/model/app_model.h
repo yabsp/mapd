@@ -1,6 +1,11 @@
 #ifndef APP_MODEL_H
 #define APP_MODEL_H
 
+/**
+ * AppModel:
+ *
+ * Holds information to a client application running in the memwrap.
+ */
 typedef struct {
     char *file_path;
     char *file_name;

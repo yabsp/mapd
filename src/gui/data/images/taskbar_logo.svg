@@ -7,7 +7,7 @@
    width="400"
    height="450"
    viewBox="-2.25003 -2.25003 93.591352 105.22199"
-   sodipodi:docname="taskbar.svg"
+   sodipodi:docname="taskbar_logo.svg"
    inkscape:version="1.3.2 (091e20e, 2023-11-25)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -25,11 +25,11 @@
      inkscape:zoom="0.515625"
      inkscape:cx="440.24242"
      inkscape:cy="227.87879"
-     inkscape:window-width="1512"
-     inkscape:window-height="916"
-     inkscape:window-x="0"
-     inkscape:window-y="38"
-     inkscape:window-maximized="1"
+     inkscape:window-width="1496"
+     inkscape:window-height="900"
+     inkscape:window-x="8"
+     inkscape:window-y="46"
+     inkscape:window-maximized="0"
      inkscape:current-layer="svg3417"
      showguides="true">
     <sodipodi:guide
@@ -41,7 +41,7 @@
   <defs
      id="defs3419" />
   <rect
-     style="fill:#266b75;fill-opacity:1;stroke-width:0.217791"
+     style="fill:#4dada0;fill-opacity:1;stroke-width:0.217791"
      id="rect1"
      width="81.892433"
      height="81.892433"

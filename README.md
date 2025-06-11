@@ -10,42 +10,41 @@ MAPD is a memory analysis framework that wraps client applications via LD_PRELOA
 - Live interactive GUI built with GTK 4
 - Realtime live log display of allocation events
 
-## Prerequisites
+## Prerequisites and Build
 
 - Ubuntu 22.04 or later
-- GTK 4.6+ development libraries:
-```bash
-sudo apt install libgtk-4-dev libglib2.0-dev libjson-c-dev build-essential cmake
-```
+- GTK 4.6+ development libraries
+The full instructions can be found in the [installation document](docs/INSTALL.md).
+
 
 ## Project Components
-
+A description and sketch of the architecture can be found in the [architecture description](docs/mapd-architecture.md).
 The system consists of the following core modules:
 
 ### `memwrap/`
 
 - LD_PRELOAD shared library (`memwrap.so`)
-- Intercepts `malloc()`, `calloc()`, `realloc()`, `free()`
+- Intercepts `malloc()`, `free()`
 - Sends JSON-encoded memory events to the central analyzer over a Unix Domain Socket (`/tmp/mapd_socket`)
 
 ### `analyzer/`
 
-- Multi-threaded server listening for incoming client connections.
+- Multithreaded server listening for incoming client connections.
 - Spawns one thread per client.
 - Parses incoming JSON messages into structured `Message` objects.
 - Enqueues messages into a thread-safe global message queue.
 - Exposes `analyzer_init()` for embedded GUI startup.
+
+#### fragmentation observation
+- Background fragmentation monitoring thread.
+- Periodically inspects fragmentation state.
+- Sends event to analyzer in case of bad fragmentation.
 
 ### `message/`
 
 - Implements the core thread-safe message queue.
 - Handles serialization/deserialization of `Message` objects.
 - Provides `enqueue_message()` and `dequeue_message()` for communication.
-
-### `fragmentation/`
-
-- Background fragmentation monitoring thread.
-- Periodically inspects fragmentation state.
 
 ### `gui/`
 
@@ -62,7 +61,7 @@ This project was completed as part of the "Operating Systems" semester course at
 the lectures. It provides the possibility to implement the newly learned material in a real world use case.
 
 ## Authors
-Contributers include:
+Contributors include:
 - Gioia Almer
 - Yanick Spichty
 - Max Reinert

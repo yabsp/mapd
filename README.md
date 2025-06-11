@@ -52,7 +52,6 @@ The system consists of the following core modules:
 - Allows user to:
     - Select target application for wrapping.
     - Launch instrumented clients (max 5 concurrent).
-    - Kill launched clients.
     - Live monitor all memory events in a scrollable log view.
 - Fully integrated with the backend analyzer running inside the GUI process.
 

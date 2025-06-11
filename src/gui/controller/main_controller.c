@@ -395,7 +395,7 @@ MainController* main_controller_new(GtkApplication *app)
     // Start analyzer with options
     analyzer_init(controller->options);
 
-    GtkGestureClick *gesture = gtk_gesture_click_new();
+    GtkGestureClick *gesture = GTK_GESTURE_CLICK(gtk_gesture_click_new());
     gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(gesture), GDK_BUTTON_PRIMARY);
     gtk_widget_add_controller(controller->view->logo_image, GTK_EVENT_CONTROLLER(gesture));
 

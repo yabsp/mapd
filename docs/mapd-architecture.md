@@ -108,14 +108,4 @@ Handles both injected and non-injected processes:
 
 ---
 
-##  Benefits of This Architecture
-
--  **Hybrid**: supports both injected and non-injected processes
--  **Modular**: clear separation of tracking and 
--  **Efficient**: no per-process analyzers needed
--  **Insightful**: capturing of both correctness and usage patterns possible
--  **Extendable**: supports GUI and time-series data.
-
----
-
 

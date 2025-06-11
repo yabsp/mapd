@@ -1,10 +1,17 @@
 #include "fragmentation.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <pthread.h>
+#include "message.h"
+#include "analyzer.h"
+#include <glib.h>
 
-// These provide a positive test
-//#define FRAG_SMALL_THRESHOLD 3500
-//#define FRAG_LARGE_THRESHOLD 200
+extern gboolean update_fragmentation_label(gpointer data);
 
-void *fragmentation_thread(const void *arg)
+void *fragmentation_thread(void *arg)
 {
     (void) arg;
 
@@ -42,10 +49,11 @@ void *fragmentation_thread(const void *arg)
         // Debug print
         fprintf(stderr, "[Fragmentation] small_blocks=%d, large_blocks=%d\n", small_blocks, large_blocks);
 
+        gpointer update = g_malloc0(sizeof(char[128]));  // Just use raw buffer
+
         if (analyzer_options != NULL)
         {
-            if (large_blocks < analyzer_options->large_threshold &&
-                small_blocks > analyzer_options->small_threshold)
+            if (large_blocks < analyzer_options->large_threshold && small_blocks > analyzer_options->small_threshold)
             {
                 Message msg;
                 memset(&msg, 0, sizeof(Message));
@@ -58,10 +66,18 @@ void *fragmentation_thread(const void *arg)
                 strncpy(msg.severity, "warning", sizeof(msg.severity));
                 strncpy(msg.description, "System memory fragmentation detected.", sizeof(msg.description));
 
-                enqueue_message(&msg);
                 fprintf(stderr, "[Fragmentation] Fragmentation event enqueued!\n");
+
+                snprintf((char*)update, 128, "! Warning:   Small Blocks = %d   |   Large Blocks = %d !",
+                    small_blocks, large_blocks);
             }
+            else
+            {
+                snprintf((char*)update, 128, "Normal:   Small Blocks = %d   |   Large Blocks = %d",
+                    small_blocks, large_blocks);
+            }
+            g_idle_add(update_fragmentation_label, update);
         }
-        sleep(10);
+        sleep(5);
     }
 }

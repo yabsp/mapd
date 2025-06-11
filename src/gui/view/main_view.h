@@ -11,17 +11,18 @@
  */
 typedef struct {
     GtkWidget *window;
-    GtkWidget *select_app_label;
     GtkWidget *select_app_button;
     GtkWidget *selected_app_label;
     GtkWidget *chooser_dialog;
     GtkWidget *args_entry;
-    GtkWidget *args_label;
     GtkWidget *launch_button;
     GtkWidget *client_grid;
-    GtkWidget *logo_button;
     GtkWidget *log_text_view;
     GtkWidget *options_button;
+    GtkWidget *curr_frag_label;
+    GtkWidget *help_button;
+    GtkWidget *title_label;
+    GtkWidget *logo_image;
 } MainView;
 
 /**

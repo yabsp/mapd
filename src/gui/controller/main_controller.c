@@ -1,17 +1,30 @@
 #include "main_controller.h"
 
+MainController* global_main_controller = NULL;
+
+typedef struct {
+    char text[128];
+} FragLabelUpdate;
+
+gboolean update_fragmentation_label(gpointer data) {
+    FragLabelUpdate* update = (FragLabelUpdate*)data;
+    if (global_main_controller && global_main_controller->view->curr_frag_label) {
+        gtk_label_set_text(GTK_LABEL(global_main_controller->view->curr_frag_label), update->text);
+    }
+    g_free(update);
+    return G_SOURCE_REMOVE;
+}
+
 /**
- * on_logo_button_clicked:
+ * on_logo_image_clicked:
  *
  * Handles user clicks on Logo. Opens the University of Basel Website
  * @param button Unused
  * @param user_data Unused
  */
-static void on_logo_button_clicked(GtkButton *button, gpointer user_data)
-{
+static void on_logo_image_clicked(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data) {
     const char *url = "https://www.unibas.ch";
     GError *error = NULL;
-
     if (!g_app_info_launch_default_for_uri(url, NULL, &error)) {
         g_printerr("Failed to open URL: %s\n", error->message);
         g_clear_error(&error);
@@ -135,59 +148,6 @@ static GSubprocess* launch_client_with_memwrap(const char *file_path, const char
     return subprocess;
 }
 
-/**
- * on_kill_client:
- *
- * Terminates the subprocess associated with the client and removes its UI elements from the grid.
- *
- * @param client Pointer to the Client instance to terminate
- */
-static void on_kill_client(Client *client)
-{
-    if (client->subprocess) {
-        g_subprocess_force_exit(client->subprocess);
-        g_subprocess_wait_check(client->subprocess, NULL, NULL);
-        g_object_unref(client->subprocess);
-        client->subprocess = NULL;
-    }
-
-    gtk_widget_unparent(client->client_id_label);
-    gtk_widget_unparent(client->file_name_label);
-    gtk_widget_unparent(client->kill_button);
-
-    // Remove client from array
-    g_ptr_array_remove(client->controller->clients, client);
-}
-
-/**
- * add_client_to_grid:
- *
- * Adds a newly launched client to the GUI, showing its ID, file name, and providing a button to kill the subprocess.
- *
- * @param controller Pointer to the MainController
- * @param client Pointer to the Client
- */
-static void add_client_to_grid(MainController *controller, Client *client)
-{
-    int row = controller->clients->len - 1;
-
-    gchar *client_id_text = g_strdup_printf("Client %d", client->client_id);
-    client->client_id_label = gtk_label_new(client_id_text);
-    g_free(client_id_text);
-
-    client->file_name_label = gtk_label_new(client->file_name);
-    client->kill_button = gtk_button_new_with_label("Kill");
-
-    gtk_grid_attach(GTK_GRID(controller->view->client_grid), client->client_id_label, 0, row, 1, 1);
-    gtk_grid_attach(GTK_GRID(controller->view->client_grid), client->file_name_label, 1, row, 1, 1);
-    gtk_grid_attach(GTK_GRID(controller->view->client_grid), client->kill_button, 2, row, 1, 1);
-
-    g_signal_connect_swapped(client->kill_button, "clicked", G_CALLBACK(on_kill_client), client);
-
-    gtk_widget_show(client->client_id_label);
-    gtk_widget_show(client->file_name_label);
-    gtk_widget_show(client->kill_button);
-}
 
 /**
  * on_launch_clicked:
@@ -216,24 +176,7 @@ static void on_launch_clicked(GtkButton *button, gpointer user_data)
         g_printerr("Maximum number of concurrent clients reached.\n");
         return;
     }
-
-    // Adds client to the grid if subprocess is successful
-    GSubprocess *sub = launch_client_with_memwrap(file_path, args_text);
-    if (sub) {
-        Client *client = g_malloc(sizeof(Client));
-        client->file_path = g_strdup(file_path);
-
-        char *basename = g_path_get_basename(file_path);
-        client->file_name = g_strdup(basename);
-        g_free(basename);
-
-        client->subprocess = sub;
-        client->client_id = controller->clients->len + 1;
-        client->controller = controller;
-
-        g_ptr_array_add(controller->clients, client);
-        add_client_to_grid(controller, client);
-    }
+    launch_client_with_memwrap(file_path, args_text);
 }
 
 /**
@@ -321,16 +264,15 @@ static void on_options_dialog_response(GtkDialog *dialog, gint response_id, gpoi
 
     if (response_id == GTK_RESPONSE_OK)
     {
-        double min_threshold = gtk_spin_button_get_value(data->min_thresh_spin);
-        double max_threshold = gtk_spin_button_get_value(data->max_thresh_spin);
+        double small_threshold = gtk_spin_button_get_value(data->small_thresh_spin);
+        double large_threshold = gtk_spin_button_get_value(data->large_thresh_spin);
         gboolean info_log = gtk_switch_get_active(data->info_log_switch);
 
-        data->controller->options->small_threshold = (int)min_threshold;
-        data->controller->options->large_threshold = (int)max_threshold;
+        data->controller->options->small_threshold = (int)small_threshold;
+        data->controller->options->large_threshold = (int)large_threshold;
         data->controller->options->info_logs_enabled = info_log;
-
-        g_print("Threshold 1: %.2f\n", min_threshold);
-        g_print("Threshold 2: %.2f\n", max_threshold);
+        g_print("Threshold Large Blocks: %.2f\n", large_threshold);
+        g_print("Threshold Small Blocks: %.2f\n", small_threshold);
         g_print("Info Logs: %s\n", info_log ? "enabled" : "disabled");
     }
 
@@ -371,18 +313,18 @@ static void on_options_button_clicked(GtkButton *button, gpointer user_data)
     gtk_box_append(GTK_BOX(content_area), grid);
 
     // Minimum threshold
-    GtkWidget *max_label = gtk_label_new("Maximum Threshold");
-    gtk_widget_set_halign(max_label, GTK_ALIGN_START);
-    GtkWidget *max_spin = gtk_spin_button_new_with_range(0, 1000000, 50);
-    gtk_grid_attach(GTK_GRID(grid), max_label, 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), max_spin, 1, 0, 1, 1);
+    GtkWidget *large_thresh_label = gtk_label_new("Minimum Large Blocks");
+    gtk_widget_set_halign(large_thresh_label, GTK_ALIGN_START);
+    GtkWidget *large_spin = gtk_spin_button_new_with_range(0, 1000000, 50);
+    gtk_grid_attach(GTK_GRID(grid), large_thresh_label, 0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), large_spin, 1, 0, 1, 1);
 
     // Maximum threshold
-    GtkWidget *min_label = gtk_label_new("Minimum Threshold");
-    gtk_widget_set_halign(min_label, GTK_ALIGN_START);
-    GtkWidget *min_spin = gtk_spin_button_new_with_range(0, 1000000, 50);
-    gtk_grid_attach(GTK_GRID(grid), min_label, 0, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), min_spin, 1, 1, 1, 1);
+    GtkWidget *small_thresh_label = gtk_label_new("Maximum Small Blocks");
+    gtk_widget_set_halign(small_thresh_label, GTK_ALIGN_START);
+    GtkWidget *small_spin = gtk_spin_button_new_with_range(0, 1000000, 50);
+    gtk_grid_attach(GTK_GRID(grid), small_thresh_label, 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), small_spin, 1, 1, 1, 1);
 
     // Logs
     GtkWidget *log_label = gtk_label_new("System Logs");
@@ -393,19 +335,38 @@ static void on_options_button_clicked(GtkButton *button, gpointer user_data)
     gtk_widget_set_halign(log_switch, GTK_ALIGN_END);
 
     // Set initial values from controller options
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(min_spin), controller->options->small_threshold);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(max_spin), controller->options->large_threshold);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(small_spin), controller->options->small_threshold);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(large_spin), controller->options->large_threshold);
     gtk_switch_set_active(GTK_SWITCH(log_switch), controller->options->info_logs_enabled);
 
     OptionsDialogData *data = g_malloc(sizeof(OptionsDialogData));
-    data->min_thresh_spin = GTK_SPIN_BUTTON(min_spin);
-    data->max_thresh_spin = GTK_SPIN_BUTTON(max_spin);
+    data->small_thresh_spin = GTK_SPIN_BUTTON(small_spin);
+    data->large_thresh_spin = GTK_SPIN_BUTTON(large_spin);
     data->info_log_switch = GTK_SWITCH(log_switch);
     data->controller = controller;
 
     g_signal_connect(dialog, "response", G_CALLBACK(on_options_dialog_response), data);
 
     gtk_widget_show(dialog);
+}
+
+/**
+ * on_help_button_clicked:
+ *
+ * Handles user clicks on "Help" button. Launches the help_window.
+ *
+ * @param button Unused
+ * @param user_data Pointer to MainController
+ */
+static void on_help_button_clicked(GtkButton *button, gpointer user_data)
+{
+    MainController *controller = user_data;
+
+    GtkBuilder *builder = gtk_builder_new_from_resource("/com/unibas/mapd/data/ui/mapd.ui");
+    GtkWidget *help_window = GTK_WIDGET(gtk_builder_get_object(builder, "help_window"));
+
+    gtk_widget_show(help_window);
+    g_object_unref(builder);
 }
 
 /**
@@ -423,6 +384,7 @@ MainController* main_controller_new(GtkApplication *app)
     controller->model = app_model_new();
     controller->view = main_view_new(app);
     controller->clients = g_ptr_array_new_with_free_func(g_free);
+    global_main_controller = controller;
 
     // Sets default for options
     controller->options = g_malloc(sizeof(AnalyzerOptions));
@@ -433,11 +395,16 @@ MainController* main_controller_new(GtkApplication *app)
     // Start analyzer with options
     analyzer_init(controller->options);
 
+    GtkGestureClick *gesture = gtk_gesture_click_new();
+    gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(gesture), GDK_BUTTON_PRIMARY);
+    gtk_widget_add_controller(controller->view->logo_image, GTK_EVENT_CONTROLLER(gesture));
+
     // Connects the signals
-    g_signal_connect(controller->view->logo_button, "clicked", G_CALLBACK(on_logo_button_clicked), NULL);
+    g_signal_connect(gesture, "pressed", G_CALLBACK(on_logo_image_clicked), NULL);
     g_signal_connect(controller->view->select_app_button, "clicked", G_CALLBACK(on_select_app_clicked), controller);
     g_signal_connect(controller->view->launch_button, "clicked", G_CALLBACK(on_launch_clicked), controller);
     g_signal_connect(controller->view->options_button, "clicked", G_CALLBACK(on_options_button_clicked), controller);
+    g_signal_connect(controller->view->help_button, "clicked", G_CALLBACK(on_help_button_clicked), controller);
 
     // Starts consumer thread for messages
     pthread_t consumer_thread;
@@ -450,7 +417,7 @@ MainController* main_controller_new(GtkApplication *app)
 /**
  * main_controller_free:
  *
- * Frees all resources associated with the MainController, including the model, view, client list, and the controller.
+ * Frees all resources associated with the MainController, including the model, view and the controller.
  *
  * @param controller Pointer to the MainController
  */
@@ -458,6 +425,5 @@ void main_controller_free(MainController *controller)
 {
     app_model_free(controller->model);
     main_view_free(controller->view);
-    g_ptr_array_free(controller->clients, TRUE);
     g_free(controller);
 }

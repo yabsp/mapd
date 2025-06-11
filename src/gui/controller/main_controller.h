@@ -10,6 +10,8 @@
 // Maximum number of concurrent clients supported
 #define MAX_CLIENTS 5
 
+gboolean update_fragmentation_label(gpointer data);
+
 /**
  * MainController:
  *
@@ -23,24 +25,7 @@ typedef struct {
     GPtrArray *clients;
 } MainController;
 
-/**
- * Client:
- *
- * Represents a launched client subprocess. Stores information about the subprocess, its file path, ID, and the
- * associated UI elements for displaying and controlling it.
- */
-typedef struct {
-    char *file_path;
-    char *file_name;
-    GSubprocess *subprocess;
-    int client_id;
-
-    GtkWidget *client_id_label;
-    GtkWidget *file_name_label;
-    GtkWidget *kill_button;
-
-    MainController *controller;
-} Client;
+extern MainController* global_main_controller;
 
 /**
  * GuiUpdateData:
@@ -58,8 +43,8 @@ typedef struct {
  * Holds widget pointers and controller to pass to the options dialog response callback.
  */
 typedef struct {
-    GtkSpinButton *min_thresh_spin;
-    GtkSpinButton *max_thresh_spin;
+    GtkSpinButton *small_thresh_spin;
+    GtkSpinButton *large_thresh_spin;
     GtkSwitch *info_log_switch;
     MainController *controller;
 } OptionsDialogData;

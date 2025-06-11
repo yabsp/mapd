@@ -14,7 +14,9 @@ target_include_directories(cjson PUBLIC ${CMAKE_SOURCE_DIR}/lib)
 
 # --- Build message module ---
 add_library(message STATIC src/message/message.c)
-target_include_directories(message PUBLIC src/message)
+target_include_directories(message PUBLIC
+        ${CMAKE_SOURCE_DIR}/src/analyzer
+        ${CMAKE_SOURCE_DIR}/src/message)
 target_link_libraries(message PUBLIC cjson)
 
 # --- Build memwrap shared library (LD_PRELOAD wrapper) ---
@@ -25,12 +27,17 @@ set_target_properties(memwrap PROPERTIES OUTPUT_NAME "mem_wrap")
 
 # --- Build analyzer executable ---
 add_library(analyzer STATIC
-        src/analyzer/analyzer.c
-        src/analyzer/fragmentation.c
+    src/analyzer/analyzer.c
+    src/analyzer/fragmentation.c
 )
+
 target_include_directories(analyzer PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/message
+    ${CMAKE_SOURCE_DIR}/src/message
+    ${CMAKE_SOURCE_DIR}/src/gui/controller
+    ${CMAKE_SOURCE_DIR}/src/gui/view
+    ${CMAKE_SOURCE_DIR}/src/gui/model
 )
+target_link_libraries(analyzer PRIVATE PkgConfig::GTK4)
 
 # --- Build GUI executable ---
 
@@ -54,13 +61,13 @@ add_executable(gui
 )
 
 target_include_directories(gui PRIVATE
-        src
-        src/analyzer
-        src/gui
-        src/gui/controller
-        src/gui/view
-        src/gui/model
-        ${CMAKE_BINARY_DIR}
+    src
+    src/analyzer
+    src/gui
+    src/gui/controller
+    src/gui/view
+    src/gui/model
+    ${CMAKE_BINARY_DIR}
 )
 
 target_link_libraries(gui PRIVATE PkgConfig::GTK4 analyzer message memwrap)

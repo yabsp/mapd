@@ -8,9 +8,10 @@
 #include <pthread.h>
 #include <time.h>
 #include <sys/types.h>
+#include "fragmentation.h"
 #include "message.h"
 #include "analyzer.h"
 
-void* fragmentation_thread(const void* arg);
+void* fragmentation_thread(void* arg);
 
 #endif

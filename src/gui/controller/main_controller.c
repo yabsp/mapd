@@ -359,6 +359,7 @@ static void on_help_button_clicked(GtkButton *button, gpointer user_data)
     GtkBuilder *builder = gtk_builder_new_from_resource("/com/unibas/mapd/data/ui/mapd.ui");
     GtkWidget *help_window = GTK_WIDGET(gtk_builder_get_object(builder, "help_window"));
 
+    gtk_window_set_transient_for(GTK_WINDOW(help_window), GTK_WINDOW(controller->view->window));
     gtk_widget_show(help_window);
     g_object_unref(builder);
 }

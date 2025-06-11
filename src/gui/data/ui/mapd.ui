@@ -128,7 +128,7 @@
     </child>
   </object>
   <object class="GtkWindow" id="help_window">
-    <property name="default-width">520</property>
+    <property name="default-width">500</property>
     <property name="title">Help</property>
     <child>
       <object class="GtkBox" id="help_box">
@@ -148,16 +148,14 @@
         </child>
         <child>
           <object class="GtkLabel" id="help_label">
-            <property name="halign">start</property>
             <property name="hexpand">True</property>
-            <property name="label">The program test_alloc can be used to check wether Mapd works as intended or not. Use the following arguments to run the different tests:
---simple: normal malloc and free; no warning
---leak: malloc and no free; warning
---dangling: pointer accessed after free; warning
---fragmentation: many malloc and free; depending on threshold warning
---overflow: writes past memory zone; warning and kill
---double-free: tries to free a pointer twice; warning
---all: does all of the above</property>
+            <property name="label">Use the test_alloc program to verify that MAPD behaves correctly. Run it with one of the following arguments to trigger specific scenarios:
+--simple: One malloc and one free; no warning expected.
+--leak: Allocates memory without freeing; triggers a leak warning.
+--double-free: Attempts to free the same pointer twice; triggers a double-free warning.
+--dangling: Accesses memory after free; triggers a dangling pointer warning and terminates the program.
+--fragmentation: Simulates many malloc/free calls; warns if fragmentation exceeds threshold.
+--overflow: Writes beyond allocated memory; triggers warning and terminates the program.</property>
             <property name="wrap">True</property>
           </object>
         </child>

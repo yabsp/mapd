@@ -7,7 +7,7 @@ on:
 
 jobs:
   valgrind-test:
-    name: Test Valgrind (Environment Check)
+    name: "Test Valgrind (Environment Check)"
     runs-on: ubuntu-22.04
 
     steps:
@@ -29,7 +29,7 @@ jobs:
         run: cmake --build build --target valgrind-test
 
   memory-test:
-    name: Test Backend (Memory Tests with Analyzer)
+    name: "Test Backend (Memory Tests with Analyzer)"
     runs-on: ubuntu-22.04
     needs: valgrind-test
 

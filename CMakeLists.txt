@@ -81,3 +81,22 @@ target_link_libraries(test_alloc PRIVATE message pthread)
 add_executable(test_valgrind tests/test_valgrind.c)
 target_include_directories(test_valgrind PRIVATE src/message)
 target_link_libraries(test_valgrind PRIVATE message pthread)
+
+# --- Additional for github workflow ---
+
+add_custom_target(valgrind-analyzer
+        COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/scripts/valgrind-analyzer.sh
+        DEPENDS gui
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_target(valgrind-test
+        COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/scripts/valgrind-test.sh
+        DEPENDS test_valgrind
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_target(clean-all
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)

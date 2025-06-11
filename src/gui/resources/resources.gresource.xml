@@ -3,5 +3,7 @@
     <gresource prefix="/com/unibas/mapd">
         <file>data/ui/mapd.ui</file>
         <file>data/images/logo.svg</file>
+        <file>data/images/taskbar_logo.svg</file>
+        <file>data/ui/styles.css</file>
     </gresource>
 </gresources>

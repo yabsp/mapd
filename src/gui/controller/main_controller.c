@@ -388,8 +388,8 @@ MainController* main_controller_new(GtkApplication *app)
 
     // Sets default for options
     controller->options = g_malloc(sizeof(AnalyzerOptions));
-    controller->options->small_threshold = 50000;
-    controller->options->large_threshold = 5000;
+    controller->options->small_threshold = 15000;
+    controller->options->large_threshold = 500;
     controller->options->info_logs_enabled = TRUE;
 
     // Start analyzer with options

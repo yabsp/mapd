@@ -1,6 +1,6 @@
 # Installation Guide
 ## Prerequisites
-(Some are already stated in the [README](README.md))
+(Some are already stated in the [README](../README.md))
 - Ubuntu 22.04 or later
 - GTK 4.6+ development libraries
 - Make and CMake
